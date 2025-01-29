@@ -63,4 +63,4 @@ if __name__ == '__main__':
     font_path = 'C:\\Windows\\Fonts\\SimHei.ttf'
     font_prop = FontProperties(fname=font_path)
     rcParams['font.family'] = font_prop.get_name()
-    run(os.path.join(INPUT_DIR, '01', 'page_6.csv'), os.path.join(OUTPUT_DIR, '01'))
+    run(os.path.join(OUTPUT_DIR, '01', 'page_6.csv'), os.path.join(INPUT_DIR, '01'))
