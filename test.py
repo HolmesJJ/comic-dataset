@@ -12,14 +12,16 @@ from matplotlib.font_manager import FontProperties
 load_dotenv()
 
 INPUT_DIR = os.getenv('INPUT_DIR')
+OUTPUT_DIR = os.getenv('OUTPUT_DIR')
 
 
 def random_color():
     return random.random(), random.random(), random.random()
 
 
-def run(csv_path, image_dir):
+def run(csv_path, comic_dir):
     df = pd.read_csv(csv_path)
+    page_name = os.path.basename(csv_path).split('.')[0]
     grouped = df.groupby('image_name')
     for image_name, group in grouped:
         image_name = str(image_name)
@@ -33,7 +35,7 @@ def run(csv_path, image_dir):
             }
             for _, row in group.iterrows()
         ]
-        image_path = os.path.join(image_dir, image_name.rsplit('_', 1)[0], image_name)
+        image_path = os.path.join(comic_dir, page_name, image_name)
         fig, ax = plt.subplots(figsize=(12, 12))
         if image_path and os.path.exists(image_path):
             img = mpimg.imread(image_path)
@@ -61,4 +63,4 @@ if __name__ == '__main__':
     font_path = 'C:\\Windows\\Fonts\\SimHei.ttf'
     font_prop = FontProperties(fname=font_path)
     rcParams['font.family'] = font_prop.get_name()
-    run(os.path.join(INPUT_DIR, 'labels.csv'), os.path.join(INPUT_DIR, '01'))
+    run(os.path.join(INPUT_DIR, '01', 'page_6.csv'), os.path.join(OUTPUT_DIR, '01'))
