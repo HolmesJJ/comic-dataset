@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 from matplotlib import rcParams
 from matplotlib.font_manager import FontProperties
+from collections import defaultdict
 
 
 load_dotenv()
@@ -19,16 +20,32 @@ def random_color():
     return random.random(), random.random(), random.random()
 
 
-def count_images(folder_path):
+def count_images(folder_path, unique_threshold=10, total_threshold=10):
     unique_images = set()
+    image_labels = defaultdict(set)
+    image_label_counts = defaultdict(int)
     for file_name in os.listdir(folder_path):
         if file_name.endswith('.csv'):
             file_path = os.path.join(folder_path, file_name)
-            df = pd.read_csv(file_path, usecols=['image_name'])
-            image_names = df['image_name'].dropna().unique()
-            image_names = [file_name.split('.')[0] + '_' + image_name for image_name in image_names]
-            unique_images.update(image_names)
-    return len(unique_images)
+            df = pd.read_csv(file_path, usecols=['image_name', 'label_name'])
+            for _, row in df.dropna(subset=['image_name', 'label_name']).iterrows():
+                image_name = f"{file_name.split('.')[0]}_{row['image_name']}"
+                unique_images.add(image_name)
+                image_labels[image_name].add(row['label_name'])
+                image_label_counts[image_name] += 1
+    total_unique_images = len(unique_images)
+    result_df = pd.DataFrame({
+        'image_name': list(image_labels.keys()),
+        'unique_label_count': [len(labels) for labels in image_labels.values()],
+        'total_label_count': [image_label_counts[image] for image in image_labels.keys()]
+    })
+    filtered_df = result_df[
+        (result_df['unique_label_count'] > unique_threshold) |
+        (result_df['total_label_count'] > total_threshold)]
+    print('Total images:', total_unique_images)
+    print('Summary')
+    print(filtered_df)
+    print(len(filtered_df))
 
 
 def run(csv_path, comic_dir):
@@ -39,11 +56,11 @@ def run(csv_path, comic_dir):
         image_name = str(image_name)
         adjusted_boxes = [
             {
-                "label": row['label_name'],
-                "x": row['bbox_x'] / row['image_width'],
-                "y": (row['image_height'] - (row['bbox_y'] + row['bbox_height'])) / row['image_height'],
-                "w": row['bbox_width'] / row['image_width'],
-                "h": row['bbox_height'] / row['image_height']
+                'label': row['label_name'],
+                'x': row['bbox_x'] / row['image_width'],
+                'y': (row['image_height'] - (row['bbox_y'] + row['bbox_height'])) / row['image_height'],
+                'w': row['bbox_width'] / row['image_width'],
+                'h': row['bbox_height'] / row['image_height']
             }
             for _, row in group.iterrows()
         ]
@@ -76,8 +93,8 @@ def run(csv_path, comic_dir):
 
 
 if __name__ == '__main__':
-    print(count_images(os.path.join(OUTPUT_DIR, '01')))
+    count_images(os.path.join(OUTPUT_DIR, '01'))
     font_path = 'C:\\Windows\\Fonts\\SimHei.ttf'
     font_prop = FontProperties(fname=font_path)
     rcParams['font.family'] = font_prop.get_name()
-    run(os.path.join(OUTPUT_DIR, '01', 'page_96.csv'), os.path.join(INPUT_DIR, '01'))
+    run(os.path.join(OUTPUT_DIR, '01', 'page_1.csv'), os.path.join(INPUT_DIR, '01'))
