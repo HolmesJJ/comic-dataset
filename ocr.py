@@ -94,6 +94,7 @@ def clean_csv(comic):
     df['Dialogue'] = df['Dialogue'].replace('<Dialogue>', '', regex=False)
     df['Dialogue'] = df['Dialogue'].str.replace(r'[<>]', '', regex=True)
     df['Dialogue'] = df['Dialogue'].str.replace('…', '...', regex=False)
+    df.dropna(subset=['Dialogue', 'Character'], how='all', inplace=True)
     df.to_csv(csv_path, index=False)
 
 
@@ -141,5 +142,5 @@ def run(comic):
 
 if __name__ == '__main__':
     run('01')
-    sort_csv('01')
     clean_csv('01')
+    sort_csv('01')
