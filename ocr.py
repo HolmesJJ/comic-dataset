@@ -4,6 +4,7 @@ import csv
 import cv2
 import base64
 import numpy as np
+import pandas as pd
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -79,6 +80,23 @@ def sort_image(file):
     return int(match.group(1)) if match else float('inf')
 
 
+def sort_csv(comic):
+    csv_path = os.path.join(OCR_DIR, f'{comic}.csv')
+    df = pd.read_csv(csv_path)
+    df_sorted = df.sort_values(by=['Page', 'Image'],
+                               key=lambda x: x.map(sort_page) if x.name == 'Page' else x.map(sort_image))
+    df_sorted.to_csv(csv_path, index=False)
+
+
+def clean_csv(comic):
+    csv_path = os.path.join(OCR_DIR, f'{comic}.csv')
+    df = pd.read_csv(csv_path)
+    df['Dialogue'] = df['Dialogue'].replace('<Dialogue>', '', regex=False)
+    df['Dialogue'] = df['Dialogue'].str.replace(r'[<>]', '', regex=True)
+    df['Dialogue'] = df['Dialogue'].str.replace('…', '...', regex=False)
+    df.to_csv(csv_path, index=False)
+
+
 def run(comic):
     csv_path = os.path.join(OCR_DIR, f'{comic}.csv')
     file_exists = os.path.exists(csv_path)
@@ -123,3 +141,5 @@ def run(comic):
 
 if __name__ == '__main__':
     run('01')
+    sort_csv('01')
+    clean_csv('01')
