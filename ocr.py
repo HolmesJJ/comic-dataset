@@ -94,6 +94,10 @@ def clean_csv(comic):
     df['Dialogue'] = df['Dialogue'].replace('<Dialogue>', '', regex=False)
     df['Dialogue'] = df['Dialogue'].str.replace(r'[<>]', '', regex=True)
     df['Dialogue'] = df['Dialogue'].str.replace('…', '...', regex=False)
+    df['Dialogue'] = df['Dialogue'].str.replace('?', '？', regex=False)
+    df['Dialogue'] = df['Dialogue'].str.replace('!', '！', regex=False)
+    df['Dialogue'] = df['Dialogue'].str.strip()
+    df[['Dialogue', 'Character']] = df[['Dialogue', 'Character']].replace('', np.nan)
     df.dropna(subset=['Dialogue', 'Character'], how='all', inplace=True)
     df.to_csv(csv_path, index=False)
 
@@ -140,7 +144,26 @@ def run(comic):
                             print(row)
 
 
+def compare(comic):
+    csv1_path = os.path.join(OCR_DIR, f'{comic}.csv')
+    csv2_path = os.path.join(OCR_DIR, f'{comic}_updated.csv')
+    df1 = pd.read_csv(csv1_path)
+    df2 = pd.read_csv(csv2_path)
+    df_diff = pd.concat([df1, df2]).drop_duplicates(keep=False)
+    summary = {
+        'total_rows_csv1': len(df1),
+        'total_rows_csv2': len(df2),
+        'different_rows': len(df_diff)
+    }
+    print('Differences between CSV files:')
+    print(df_diff)
+    print('\nSummary:')
+    print(summary)
+
+
 if __name__ == '__main__':
+    compare('01')
     run('01')
-    clean_csv('01')
-    sort_csv('01')
+    for i in range(1, 43):
+        clean_csv(f'{i:02d}')
+        sort_csv(f'{i:02d}')

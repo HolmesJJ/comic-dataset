@@ -46,6 +46,22 @@ def count_images(folder_path, unique_threshold=10, total_threshold=10):
     print('Summary')
     print(filtered_df)
     print(len(filtered_df))
+    calculate_price(total_unique_images, result_df)
+
+
+def calculate_price(total_unique_images, df):
+    count_10_15 = df[(df['total_label_count'] > 10) & (df['total_label_count'] <= 15)].shape[0]
+    count_15_plus = df[df['total_label_count'] > 15].shape[0]
+    count_default = total_unique_images - count_10_15 - count_15_plus
+    total_cost = count_default * 0.2 + count_10_15 * 0.3 + count_15_plus * 0.4
+    formula = f'({count_default} * 0.2) + ({count_10_15} * 0.3) + ({count_15_plus} * 0.4)'
+    print(f'Total Images: {total_unique_images}')
+    print(f'Images with total_label_count > 15: {count_15_plus}')
+    print(f'Images with 10 < total_label_count ≤ 15: {count_10_15}')
+    print(f'Images with total_label_count ≤ 10: {count_default}')
+    print(f'Total Cost: {formula} = {total_cost:.2f}')
+
+    return total_cost
 
 
 def run(csv_path, comic_dir):
