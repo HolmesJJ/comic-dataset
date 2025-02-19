@@ -94,6 +94,7 @@ def clean_csv(comic):
     df['Dialogue'] = df['Dialogue'].replace('<Dialogue>', '', regex=False)
     df['Dialogue'] = df['Dialogue'].str.replace(r'[<>]', '', regex=True)
     df['Dialogue'] = df['Dialogue'].str.replace('…', '...', regex=False)
+    df['Dialogue'] = df['Dialogue'].str.replace(',', '，', regex=False)
     df['Dialogue'] = df['Dialogue'].str.replace('?', '？', regex=False)
     df['Dialogue'] = df['Dialogue'].str.replace('!', '！', regex=False)
     df['Dialogue'] = df['Dialogue'].str.strip()
