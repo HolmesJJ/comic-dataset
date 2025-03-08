@@ -108,7 +108,41 @@ def run(csv_path, comic_dir):
         plt.show()
 
 
+def file_exists(row, folder_path):
+    image_path = os.path.join(folder_path, row['page'], row['image_name'])
+    return os.path.exists(image_path)
+
+
+def check(comic):
+    input_images = set()
+    for root, dirs, files in os.walk(os.path.join(INPUT_DIR, comic), topdown=True):
+        for file in files:
+            file_path = os.path.join(root, file)
+            image_name = os.path.basename(file_path)
+            page = os.path.basename(root)
+            input_images.add((image_name, page))
+    csv_files = [f for f in os.listdir(os.path.join(OUTPUT_DIR, comic))]
+    df = pd.DataFrame()
+    for file in csv_files:
+        file_path = os.path.join(os.path.join(OUTPUT_DIR, comic), file)
+        page_df = pd.read_csv(file_path, usecols=['image_name', 'image_width', 'image_height'])
+        page_df = page_df.drop_duplicates()
+        page = os.path.basename(file_path).split('.')[0]
+        page_df['page'] = page
+        df = pd.concat([df, page_df], ignore_index=True)
+    df_images = set(zip(df['image_name'], df['page']))
+    missing_from_df = input_images - df_images
+    missing_from_input = df_images - input_images
+    for image_name, page in sorted(missing_from_df, key=lambda x: (int(x[1].split('_')[-1]), x[0])):
+        print(f'{page}/{image_name}')
+    print('-' * 10)
+    for image_name, page in sorted(missing_from_input, key=lambda x: (int(x[1].split('_')[-1]), x[0])):
+        print(f'{page}/{image_name}')
+
+
 if __name__ == '__main__':
+    # for i in range(1, 43):
+    #     check(f'{i:02d}')
     count_images(os.path.join(OUTPUT_DIR, '01'))
     font_path = 'C:\\Windows\\Fonts\\SimHei.ttf'
     font_prop = FontProperties(fname=font_path)
