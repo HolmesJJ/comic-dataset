@@ -87,8 +87,10 @@ def run(csv_path, comic_dir):
             img_height, img_width = img.shape[:2]
             aspect_ratio = img_width / img_height
             fig_height = 7
-            fig_width = fig_height * aspect_ratio
-            fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+            fig_width = fig_height * aspect_ratio + 2  # 多留出 legend 空间
+            fig = plt.figure(figsize=(fig_width, fig_height))
+            gs = fig.add_gridspec(1, 2, width_ratios=[aspect_ratio, 0.4])  # 第二列为 legend
+            ax = fig.add_subplot(gs[0])
             ax.imshow(img, extent=[0, 1, 0, 1], aspect='auto')
         else:
             print(f'Image not found at path: {image_path}')
@@ -102,14 +104,16 @@ def run(csv_path, comic_dir):
         labels_colors = {box['label']: random_color() for box in adjusted_boxes}
         for box in adjusted_boxes:
             color = labels_colors[box['label']]
-            rect = plt.Rectangle((box['x'], box['y']), box['w'], box['h'], linewidth=2, edgecolor=color, facecolor='none')
+            rect = plt.Rectangle((box['x'], box['y']), box['w'], box['h'], linewidth=2,
+                                 edgecolor=color, facecolor='none')
             ax.add_patch(rect)
-            ax.text(box['x'] + box['w'] / 2, box['y'] + box['h'] / 2, box['label'], color='red', fontsize=10, ha='center',
-                    va='center')
+            ax.text(box['x'] + box['w'] / 2, box['y'] + box['h'] / 2, box['label'],
+                    color='red', fontsize=10, ha='center', va='center')
+        legend_ax = fig.add_subplot(gs[1])
+        legend_ax.axis('off')
         handles = [Patch(edgecolor=color, facecolor='none', linewidth=2, label=label)
                    for label, color in labels_colors.items()]
-        ax.legend(handles=handles, loc='center left', bbox_to_anchor=(1.05, 0.5), borderaxespad=0.)
-        plt.tight_layout()
+        legend_ax.legend(handles=handles, loc='center left')
         plt.show()
 
 
