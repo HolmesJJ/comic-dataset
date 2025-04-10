@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 from dotenv import load_dotenv
 from matplotlib import rcParams
+from matplotlib.patches import Patch
 from matplotlib.font_manager import FontProperties
 from collections import defaultdict
 
@@ -98,13 +99,17 @@ def run(csv_path, comic_dir):
         ax.set_title(image_name)
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
+        labels_colors = {box['label']: random_color() for box in adjusted_boxes}
         for box in adjusted_boxes:
-            color = random_color()
+            color = labels_colors[box['label']]
             rect = plt.Rectangle((box['x'], box['y']), box['w'], box['h'], linewidth=2, edgecolor=color, facecolor='none')
             ax.add_patch(rect)
             ax.text(box['x'] + box['w'] / 2, box['y'] + box['h'] / 2, box['label'], color='red', fontsize=10, ha='center',
                     va='center')
-        plt.legend([box['label'] for box in adjusted_boxes], loc='upper right')
+        handles = [Patch(edgecolor=color, facecolor='none', linewidth=2, label=label)
+                   for label, color in labels_colors.items()]
+        ax.legend(handles=handles, loc='center left', bbox_to_anchor=(1.05, 0.5), borderaxespad=0.)
+        plt.tight_layout()
         plt.show()
 
 
