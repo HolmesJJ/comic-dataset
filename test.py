@@ -3,6 +3,8 @@ import random
 import pandas as pd
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
+import xml.dom.minidom as minidom
+import xml.etree.ElementTree as ET
 
 from dotenv import load_dotenv
 from matplotlib import rcParams
@@ -63,6 +65,65 @@ def calculate_price(total_unique_images, df):
     print(f'Total Cost: {formula} = {total_cost:.2f}')
 
     return total_cost
+
+
+def create_voc_xml(image_name, image_width, image_height, objects):
+    annotation = ET.Element('annotation')
+    folder = ET.SubElement(annotation, 'folder')
+    folder.text = ''
+    filename = ET.SubElement(annotation, 'filename')
+    filename.text = image_name
+    path = ET.SubElement(annotation, 'path')
+    path.text = ''
+    source = ET.SubElement(annotation, 'source')
+    database = ET.SubElement(source, 'database')
+    database.text = 'Unspecified'
+    size = ET.SubElement(annotation, 'size')
+    width = ET.SubElement(size, 'width')
+    width.text = str(image_width)
+    height = ET.SubElement(size, 'height')
+    height.text = str(image_height)
+    depth = ET.SubElement(size, 'depth')
+    depth.text = '3'
+    for obj in objects:
+        obj_element = ET.SubElement(annotation, 'object')
+        name = ET.SubElement(obj_element, 'name')
+        name.text = obj['label_name']
+        pose = ET.SubElement(obj_element, 'pose')
+        pose.text = 'Unspecified'
+        truncated = ET.SubElement(obj_element, 'truncated')
+        truncated.text = '0'
+        difficult = ET.SubElement(obj_element, 'difficult')
+        difficult.text = '0'
+        bnd_box = ET.SubElement(obj_element, 'bndbox')
+        x_min = ET.SubElement(bnd_box, 'xmin')
+        x_min.text = str(int(obj['bbox_x']))
+        y_min = ET.SubElement(bnd_box, 'ymin')
+        y_min.text = str(int(obj['bbox_y']))
+        x_max = ET.SubElement(bnd_box, 'xmax')
+        x_max.text = str(int(obj['bbox_x'] + obj['bbox_width']))
+        y_max = ET.SubElement(bnd_box, 'ymax')
+        y_max.text = str(int(obj['bbox_y'] + obj['bbox_height']))
+    return ET.ElementTree(annotation)
+
+
+def save_pretty_xml(tree, output_path):
+    xml_str = ET.tostring(tree.getroot(), encoding='utf-8')
+    parsed = minidom.parseString(xml_str)
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(parsed.toprettyxml(indent="\t"))
+
+
+def csv_to_voc(csv_file, output_dir):
+    df = pd.read_csv(csv_file)
+    grouped = df.groupby('image_name')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    for image_name, group in grouped:
+        image_width = int(group['image_width'].iloc[0])
+        image_height = int(group['image_height'].iloc[0])
+        xml_tree = create_voc_xml(image_name, image_width, image_height, group.to_dict(orient='records'))
+        save_pretty_xml(xml_tree, os.path.join(output_dir, str(image_name).replace('.jpg', '.xml')))
 
 
 def run(csv_path, comic_dir):
@@ -157,3 +218,10 @@ if __name__ == '__main__':
     font_prop = FontProperties(fname=font_path)
     rcParams['font.family'] = font_prop.get_name()
     run(os.path.join(OUTPUT_DIR, '01', 'page_1.csv'), os.path.join(INPUT_DIR, '01'))
+    # comic_dir = os.path.join(OUTPUT_DIR, '01')
+    # for filename in os.listdir(comic_dir):
+    #     if filename.endswith('.csv'):
+    #         csv_path = os.path.join(comic_dir, filename)
+    #         csv_name = os.path.splitext(filename)[0]
+    #         output_dir = os.path.join(comic_dir, csv_name)
+    #         csv_to_voc(csv_path, output_dir)
