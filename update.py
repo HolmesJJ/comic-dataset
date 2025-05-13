@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-INPUT_DIR = os.getenv('INPUT_DIR')
+COMIC_DIR = os.getenv('COMIC_DIR')
 
 
 def add_prefix_to_files(base_path):
@@ -20,4 +20,4 @@ def add_prefix_to_files(base_path):
 
 
 if __name__ == '__main__':
-    add_prefix_to_files(os.path.join(INPUT_DIR, '01'))
+    add_prefix_to_files(os.path.join(COMIC_DIR, '01'))

@@ -12,5 +12,7 @@ cache/
 
 # data
 comic/
+comic-anime/
+dialogue/
+object/
 output/
-ocr/

@@ -6,14 +6,17 @@ import base64
 import numpy as np
 import pandas as pd
 
+from tqdm import tqdm
 from openai import OpenAI
 from dotenv import load_dotenv
+from collections import Counter
 
 
 load_dotenv()
 
-INPUT_DIR = os.getenv('INPUT_DIR')
-OCR_DIR = os.getenv('OCR_DIR')
+COMIC = os.getenv('COMIC')
+COMIC_DIR = os.getenv('COMIC_DIR')
+DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 MODEL = os.getenv('MODEL')
 OPENAI_KEY = os.getenv('OPENAI_KEY')
 PROMPT_PATH = os.getenv('PROMPT4_PATH')
@@ -81,7 +84,7 @@ def sort_image(file):
 
 
 def sort_csv(comic):
-    csv_path = os.path.join(OCR_DIR, f'{comic}.csv')
+    csv_path = os.path.join(DIALOGUE_DIR, f'{comic}.csv')
     df = pd.read_csv(csv_path)
     df_sorted = df.sort_values(by=['Page', 'Image'],
                                key=lambda x: x.map(sort_page) if x.name == 'Page' else x.map(sort_image))
@@ -89,7 +92,7 @@ def sort_csv(comic):
 
 
 def clean_csv(comic):
-    csv_path = os.path.join(OCR_DIR, f'{comic}.csv')
+    csv_path = os.path.join(DIALOGUE_DIR, f'{comic}.csv')
     df = pd.read_csv(csv_path)
     df['Dialogue'] = df['Dialogue'].replace('<Dialogue>', '', regex=False)
     df['Dialogue'] = df['Dialogue'].str.replace(r'[<>]', '', regex=True)
@@ -104,7 +107,7 @@ def clean_csv(comic):
 
 
 def run(comic):
-    csv_path = os.path.join(OCR_DIR, f'{comic}.csv')
+    csv_path = os.path.join(DIALOGUE_DIR, f'{comic}.csv')
     file_exists = os.path.exists(csv_path)
     processed_files = set()
     if file_exists:
@@ -113,12 +116,12 @@ def run(comic):
             for row in csv_reader:
                 if len(row) >= 2:
                     processed_files.add((row[0], row[1]))
-    with open(os.path.join(OCR_DIR, f'{comic}.csv'), mode='a', newline='', encoding='utf-8') as csv_file:
+    with open(os.path.join(DIALOGUE_DIR, f'{comic}.csv'), mode='a', newline='', encoding='utf-8') as csv_file:
         csv_writer = csv.writer(csv_file)
         if not file_exists:
             csv_writer.writerow(['Page', 'Image', 'Character', 'Dialogue'])
         root_dirs = []
-        for root, dirs, files in os.walk(os.path.join(INPUT_DIR, comic)):
+        for root, dirs, files in os.walk(os.path.join(COMIC_DIR, comic)):
             root_dirs.append((root, dirs, files))
         root_dirs.sort(key=lambda x: sort_page(x[0]))
         for root, dirs, files in root_dirs:
@@ -146,8 +149,8 @@ def run(comic):
 
 
 def compare(comic):
-    csv1_path = os.path.join(OCR_DIR, f'{comic}.csv')
-    csv2_path = os.path.join(OCR_DIR, f'{comic}_updated.csv')
+    csv1_path = os.path.join(DIALOGUE_DIR, f'{comic}.csv')
+    csv2_path = os.path.join(DIALOGUE_DIR, f'{comic}_updated.csv')
     df1 = pd.read_csv(csv1_path)
     df2 = pd.read_csv(csv2_path)
     df_diff = pd.concat([df1, df2]).drop_duplicates(keep=False)
@@ -162,9 +165,34 @@ def compare(comic):
     print(summary)
 
 
+def check_label_unique():
+    label_counter = Counter()
+    all_csv_files = []
+    for root, dirs, files in os.walk(DIALOGUE_DIR, topdown=True):
+        for file in files:
+            if file.endswith('.csv'):
+                all_csv_files.append(os.path.join(root, file))
+    for file_path in tqdm(all_csv_files, desc='Processing CSVs'):
+        try:
+            df = pd.read_csv(file_path, usecols=['Character'])
+            labels = df['Character'].dropna()
+            label_counter.update(labels)
+        except Exception as e:
+            print(f'Error reading {file_path}: {e}')
+    output_df = pd.DataFrame(
+        sorted(label_counter.items(), key=lambda x: x[0]),
+        columns=['character', 'count']
+    )
+    output_path = os.path.join(DIALOGUE_DIR, 'character_summary.csv')
+    output_df.to_csv(output_path, index=False)
+    print(f'Characters with counts saved to: {output_path}')
+
+
 if __name__ == '__main__':
-    compare('01')
-    run('01')
-    for i in range(1, 43):
-        clean_csv(f'{i:02d}')
-        sort_csv(f'{i:02d}')
+    # compare('01')
+    # run('01')
+    # for i in range(1, 43):
+    #     clean_csv(f'{i:02d}')
+    #     sort_csv(f'{i:02d}')
+    # TODO
+    check_label_unique()

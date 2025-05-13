@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-INPUT_DIR = os.getenv('INPUT_DIR')
+COMIC_DIR = os.getenv('COMIC_DIR')
 MODEL = os.getenv('MODEL')
 OPENAI_KEY = os.getenv('OPENAI_KEY')
 PROMPT_PATH = os.getenv('PROMPT3_PATH')
@@ -62,13 +62,13 @@ def get_response(prompt_content, base64_image):
 
 
 def run():
-    layout_path = os.path.join(INPUT_DIR, 'layout.json')
-    for root, dirs, files in os.walk(INPUT_DIR):
+    layout_path = os.path.join(COMIC_DIR, 'layout.json')
+    for root, dirs, files in os.walk(COMIC_DIR):
         for file in files:
             if file.endswith('.png') or file.endswith('.jpg'):
                 image_path = os.path.join(root, file)
                 base64_image = image_to_base64(image_path)
-                layout = read_layout(layout_path, image_path[len(INPUT_DIR)+1:].replace('\\', '/'))
+                layout = read_layout(layout_path, image_path[len(COMIC_DIR)+1:].replace('\\', '/'))
                 layout_json = json.dumps(layout, indent=4)
                 prompt_content = read_prompt(PROMPT_PATH)
                 # TODO: 增加前情回顾

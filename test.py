@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
+from tqdm import tqdm
 from dotenv import load_dotenv
+from collections import Counter
 from matplotlib import rcParams
 from matplotlib.patches import Patch
 from matplotlib.font_manager import FontProperties
@@ -15,8 +17,9 @@ from collections import defaultdict
 
 load_dotenv()
 
-INPUT_DIR = os.getenv('INPUT_DIR')
-OUTPUT_DIR = os.getenv('OUTPUT_DIR')
+COMIC = os.getenv('COMIC')
+COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
+OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
 
 
 def random_color():
@@ -111,19 +114,19 @@ def save_pretty_xml(tree, output_path):
     xml_str = ET.tostring(tree.getroot(), encoding='utf-8')
     parsed = minidom.parseString(xml_str)
     with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(parsed.toprettyxml(indent="\t"))
+        f.write(parsed.toprettyxml(indent='\t'))
 
 
-def csv_to_voc(csv_file, output_dir):
+def csv_to_voc(csv_file, object_dir):
     df = pd.read_csv(csv_file)
     grouped = df.groupby('image_name')
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if not os.path.exists(object_dir):
+        os.makedirs(object_dir)
     for image_name, group in grouped:
         image_width = int(group['image_width'].iloc[0])
         image_height = int(group['image_height'].iloc[0])
         xml_tree = create_voc_xml(image_name, image_width, image_height, group.to_dict(orient='records'))
-        save_pretty_xml(xml_tree, os.path.join(output_dir, str(image_name).replace('.jpg', '.xml')))
+        save_pretty_xml(xml_tree, os.path.join(object_dir, str(image_name).replace('.jpg', '.xml')))
 
 
 def run(csv_path, comic_dir):
@@ -183,18 +186,18 @@ def file_exists(row, folder_path):
     return os.path.exists(image_path)
 
 
-def check(comic):
+def check_missing(comic):
     input_images = set()
-    for root, dirs, files in os.walk(os.path.join(INPUT_DIR, comic), topdown=True):
+    for root, dirs, files in os.walk(os.path.join(COMIC_DIR, comic), topdown=True):
         for file in files:
             file_path = os.path.join(root, file)
             image_name = os.path.basename(file_path)
             page = os.path.basename(root)
             input_images.add((image_name, page))
-    csv_files = [f for f in os.listdir(os.path.join(OUTPUT_DIR, comic))]
+    csv_files = [f for f in os.listdir(os.path.join(OBJECT_DIR, comic))]
     df = pd.DataFrame()
     for file in csv_files:
-        file_path = os.path.join(os.path.join(OUTPUT_DIR, comic), file)
+        file_path = os.path.join(os.path.join(OBJECT_DIR, comic), file)
         page_df = pd.read_csv(file_path, usecols=['image_name', 'image_width', 'image_height'])
         page_df = page_df.drop_duplicates()
         page = os.path.basename(file_path).split('.')[0]
@@ -210,18 +213,41 @@ def check(comic):
         print(f'{page}/{image_name}')
 
 
+def check_label_unique():
+    label_counter = Counter()
+    all_csv_files = []
+    for root, dirs, files in os.walk(OBJECT_DIR, topdown=True):
+        for file in files:
+            if file.endswith('.csv'):
+                all_csv_files.append(os.path.join(root, file))
+    for file_path in tqdm(all_csv_files, desc='Processing CSVs'):
+        try:
+            df = pd.read_csv(file_path, usecols=['label_name'])
+            labels = df['label_name'].dropna()
+            label_counter.update(labels)
+        except Exception as e:
+            print(f'Error reading {file_path}: {e}')
+    output_df = pd.DataFrame(
+        sorted(label_counter.items(), key=lambda x: x[0]),
+        columns=['label_name', 'count']
+    )
+    output_path = os.path.join(OBJECT_DIR, 'label_summary.csv')
+    output_df.to_csv(output_path, index=False)
+    print(f'Label names with counts saved to: {output_path}')
+
+
 if __name__ == '__main__':
-    # for i in range(1, 43):
-    #     check(f'{i:02d}')
-    count_images(os.path.join(OUTPUT_DIR, '01'))
-    font_path = 'C:\\Windows\\Fonts\\SimHei.ttf'
-    font_prop = FontProperties(fname=font_path)
-    rcParams['font.family'] = font_prop.get_name()
-    run(os.path.join(OUTPUT_DIR, '01', 'page_1.csv'), os.path.join(INPUT_DIR, '01'))
-    # comic_dir = os.path.join(OUTPUT_DIR, '01')
+    # TODO
+    # for i in range(17, 43):
+    #     print(f'{i:02d}')
+    #     check_missing(f'{i:02d}')
+    check_label_unique()
+    # count_images(os.path.join(OBJECT_DIR, '01(已检查)'))
+    # font_path = 'C:\\Windows\\Fonts\\SimHei.ttf'
+    # font_prop = FontProperties(fname=font_path)
+    # rcParams['font.family'] = font_prop.get_name()
+    # run(os.path.join(OBJECT_DIR, '01(已检查)', 'page_6.csv'), os.path.join(COMIC_DIR, '01'))
+    # comic_dir = os.path.join(OBJECT_DIR, '01')
     # for filename in os.listdir(comic_dir):
     #     if filename.endswith('.csv'):
-    #         csv_path = os.path.join(comic_dir, filename)
-    #         csv_name = os.path.splitext(filename)[0]
-    #         output_dir = os.path.join(comic_dir, csv_name)
-    #         csv_to_voc(csv_path, output_dir)
+    #         csv_to_voc(os.path.join(comic_dir, filename), os.path.join(comic_dir, os.path.splitext(filename)[0]))

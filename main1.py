@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-INPUT_DIR = os.getenv('INPUT_DIR')
+COMIC_DIR = os.getenv('COMIC_DIR')
 MODEL = os.getenv('MODEL')
 OPENAI_KEY = os.getenv('OPENAI_KEY')
 PROMPT_PATH = os.getenv('PROMPT1_PATH')
@@ -97,7 +97,7 @@ def get_response(prompt_content, base64_image):
 
 
 def run():
-    for root, dirs, files in os.walk(INPUT_DIR):
+    for root, dirs, files in os.walk(COMIC_DIR):
         for file in files:
             if file.endswith('.png') or file.endswith('.jpg'):
                 image_path = os.path.join(root, file)
