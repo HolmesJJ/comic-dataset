@@ -170,11 +170,13 @@ def check_label_unique():
     all_csv_files = []
     for root, dirs, files in os.walk(DIALOGUE_DIR, topdown=True):
         for file in files:
-            if file.endswith('.csv'):
+            if '_updated' in file and file.endswith('.csv'):
                 all_csv_files.append(os.path.join(root, file))
     for file_path in tqdm(all_csv_files, desc='Processing CSVs'):
         try:
-            df = pd.read_csv(file_path, usecols=['Character'])
+            df = pd.read_csv(file_path)
+            if df.shape[1] != 4:
+                print(f'Invalid column count in {file_path}: {df.shape[1]} columns')
             labels = df['Character'].dropna()
             label_counter.update(labels)
         except Exception as e:
@@ -194,5 +196,4 @@ if __name__ == '__main__':
     # for i in range(1, 43):
     #     clean_csv(f'{i:02d}')
     #     sort_csv(f'{i:02d}')
-    # TODO
     check_label_unique()

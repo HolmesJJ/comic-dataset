@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 
+from PIL import Image
 from tqdm import tqdm
 from dotenv import load_dotenv
 from collections import Counter
@@ -20,6 +21,11 @@ load_dotenv()
 COMIC = os.getenv('COMIC')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
+COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC)
+
+FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
+FONT_PROP = FontProperties(fname=FONT_PATH)
+rcParams['font.family'] = FONT_PROP.get_name()
 
 
 def random_color():
@@ -66,7 +72,6 @@ def calculate_price(total_unique_images, df):
     print(f'Images with 10 < total_label_count ≤ 15: {count_10_15}')
     print(f'Images with total_label_count ≤ 10: {count_default}')
     print(f'Total Cost: {formula} = {total_cost:.2f}')
-
     return total_cost
 
 
@@ -117,16 +122,21 @@ def save_pretty_xml(tree, output_path):
         f.write(parsed.toprettyxml(indent='\t'))
 
 
-def csv_to_voc(csv_file, object_dir):
-    df = pd.read_csv(csv_file)
-    grouped = df.groupby('image_name')
-    if not os.path.exists(object_dir):
-        os.makedirs(object_dir)
-    for image_name, group in grouped:
-        image_width = int(group['image_width'].iloc[0])
-        image_height = int(group['image_height'].iloc[0])
-        xml_tree = create_voc_xml(image_name, image_width, image_height, group.to_dict(orient='records'))
-        save_pretty_xml(xml_tree, os.path.join(object_dir, str(image_name).replace('.jpg', '.xml')))
+def csv_to_voc(comic):
+    comic_dir = os.path.join(OBJECT_DIR, comic)
+    for filename in os.listdir(comic_dir):
+        if filename.endswith('.csv'):
+            csv_file = os.path.join(comic_dir, filename)
+            object_dir = os.path.join(comic_dir, os.path.splitext(filename)[0])
+            df = pd.read_csv(csv_file)
+            grouped = df.groupby('image_name')
+            if not os.path.exists(object_dir):
+                os.makedirs(object_dir)
+            for image_name, group in grouped:
+                image_width = int(group['image_width'].iloc[0])
+                image_height = int(group['image_height'].iloc[0])
+                xml_tree = create_voc_xml(image_name, image_width, image_height, group.to_dict(orient='records'))
+                save_pretty_xml(xml_tree, os.path.join(object_dir, str(image_name).replace('.jpg', '.xml')))
 
 
 def run(csv_path, comic_dir):
@@ -186,18 +196,24 @@ def file_exists(row, folder_path):
     return os.path.exists(image_path)
 
 
-def check_missing(comic):
+def check_missing(comic, checked):
     input_images = set()
+    input_image_sizes = {}
     for root, dirs, files in os.walk(os.path.join(COMIC_DIR, comic), topdown=True):
         for file in files:
             file_path = os.path.join(root, file)
             image_name = os.path.basename(file_path)
             page = os.path.basename(root)
             input_images.add((image_name, page))
-    csv_files = [f for f in os.listdir(os.path.join(OBJECT_DIR, comic))]
+            try:
+                with Image.open(file_path) as img:
+                    input_image_sizes[(image_name, page)] = img.size
+            except Exception as e:
+                print(f'Error image {file_path}: {e}')
+    csv_files = [f for f in os.listdir(os.path.join(OBJECT_DIR, f'{comic}(已检查)' if checked else comic))]
     df = pd.DataFrame()
     for file in csv_files:
-        file_path = os.path.join(os.path.join(OBJECT_DIR, comic), file)
+        file_path = os.path.join(os.path.join(OBJECT_DIR, f'{comic}(已检查)' if checked else comic), file)
         page_df = pd.read_csv(file_path, usecols=['image_name', 'image_width', 'image_height'])
         page_df = page_df.drop_duplicates()
         page = os.path.basename(file_path).split('.')[0]
@@ -206,11 +222,20 @@ def check_missing(comic):
     df_images = set(zip(df['image_name'], df['page']))
     missing_from_df = input_images - df_images
     missing_from_input = df_images - input_images
-    for image_name, page in sorted(missing_from_df, key=lambda x: (int(x[1].split('_')[-1]), x[0])):
-        print(f'{page}/{image_name}')
-    print('-' * 10)
+    # print(f'{comic} 没有标记对象的图：')
+    # for image_name, page in sorted(missing_from_df, key=lambda x: (int(x[1].split('_')[-1]), x[0])):
+    #     print(f'{page}/{image_name}')
+    print(f'{comic} 标记了但找不到对应的图：')
     for image_name, page in sorted(missing_from_input, key=lambda x: (int(x[1].split('_')[-1]), x[0])):
         print(f'{page}/{image_name}')
+    print(f'{comic} 尺寸不一致的图：')
+    for _, row in df.iterrows():
+        key = (row['image_name'], row['page'])
+        if key in input_image_sizes:
+            actual_w, actual_h = input_image_sizes[key]
+            csv_w, csv_h = int(row['image_width']), int(row['image_height'])
+            if actual_w != csv_w or actual_h != csv_h:
+                print(f"{row['page']}/{row['image_name']}：CSV=({csv_w},{csv_h})，实际=({actual_w},{actual_h})")
 
 
 def check_label_unique():
@@ -237,17 +262,11 @@ def check_label_unique():
 
 
 if __name__ == '__main__':
-    # TODO
+    # for i in range(1, 17):
+    #     check_missing(f'{i:02d}', True)
     # for i in range(17, 43):
-    #     print(f'{i:02d}')
-    #     check_missing(f'{i:02d}')
+    #     check_missing(f'{i:02d}', False)
     check_label_unique()
+    # csv_to_voc('01(已检查)')
     # count_images(os.path.join(OBJECT_DIR, '01(已检查)'))
-    # font_path = 'C:\\Windows\\Fonts\\SimHei.ttf'
-    # font_prop = FontProperties(fname=font_path)
-    # rcParams['font.family'] = font_prop.get_name()
     # run(os.path.join(OBJECT_DIR, '01(已检查)', 'page_6.csv'), os.path.join(COMIC_DIR, '01'))
-    # comic_dir = os.path.join(OBJECT_DIR, '01')
-    # for filename in os.listdir(comic_dir):
-    #     if filename.endswith('.csv'):
-    #         csv_to_voc(os.path.join(comic_dir, filename), os.path.join(comic_dir, os.path.splitext(filename)[0]))
