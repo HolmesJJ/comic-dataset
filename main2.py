@@ -1,7 +1,5 @@
 import os
-import re
 import cv2
-import json
 import base64
 import random
 import colorsys
@@ -27,7 +25,7 @@ OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
 MODEL = os.getenv('MODEL')
 OPENAI_KEY = os.getenv('OPENAI_KEY')
 PROMPT_PATH = os.getenv('PROMPT2_PATH')
-OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), "output.pkl")
+OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'extension.pkl')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
 FONT_PROP = FontProperties(fname=FONT_PATH)
@@ -48,7 +46,7 @@ def random_colors(n):
 
 
 def wrap_text(text, width=20):
-    return "\n".join(textwrap.wrap(text, width=width))
+    return '\n'.join(textwrap.wrap(text, width=width))
 
 
 def read_prompt(prompt_path):
@@ -60,34 +58,6 @@ def read_prompt(prompt_path):
 def image_to_base64(image_path):
     with open(image_path, 'rb') as img_file:
         return base64.b64encode(img_file.read()).decode('utf-8')
-
-
-def extract_json(text):
-    try:
-        json_data = json.loads(text)
-        if json_data != {}:
-            return json_data
-    except (Exception,):
-        pass
-    json_match = re.search(r'```(?:json)?(.+?)```', text, re.DOTALL)
-    if json_match:
-        json_content = json_match.group(1).strip()
-        try:
-            json_data = json.loads(json_content)
-            if json_data != {}:
-                return json_data
-        except (Exception,):
-            pass
-    dict_match = re.search(r'(\{.*\})', text, re.DOTALL)
-    if dict_match:
-        dict_content = dict_match.group(1).strip()
-        try:
-            dict_data = eval(dict_content)
-            if isinstance(dict_data, dict) and dict_data != {}:
-                return dict_data
-        except (Exception,):
-            pass
-    return {}
 
 
 def get_response(prompt_content, base64_images):
@@ -168,7 +138,7 @@ def show_bboxes(image_path, object_df, max_width=768, max_height=768):
     label_colors = {}
     img = cv2.imread(image_path)
     if img is None:
-        raise ValueError(f"Failed to load image: {image_path}")
+        raise ValueError(f'Failed to load image: {image_path}')
     img_height, img_width = img.shape[:2]
     for _, row in object_df.iterrows():
         x = int(row['x'] * img_width)
@@ -185,7 +155,7 @@ def show_bboxes(image_path, object_df, max_width=768, max_height=768):
         img_display = cv2.resize(img, (int(img_width * scale), int(img_height * scale)), interpolation=cv2.INTER_AREA)
     else:
         img_display = img
-    cv2.imshow("Detected Objects", img_display)
+    cv2.imshow('Detected Objects', img_display)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -338,10 +308,10 @@ def display_panels(comic_block_ids, objects, dialogues):
 def run():
     if os.path.exists(OUTPUT_PATH):
         df = pd.read_pickle(OUTPUT_PATH)
-        all_comic_blocks = df["comic_block_id"].tolist()
-        responses = df["response"].tolist()
+        all_comic_blocks = df['comic_block_id'].tolist()
+        responses = df['response'].tolist()
     else:
-        df = pd.DataFrame(columns=["comic_block_id", "response"])
+        df = pd.DataFrame(columns=['comic_block_id', 'response'])
         all_comic_blocks, responses = [], []
     comic_anime_files = sorted([f for f in os.listdir(COMIC_ANIME_DIR) if f.endswith('.csv')])
     for comic_anime_file in comic_anime_files:
@@ -393,6 +363,8 @@ def run():
                                                              dialogue_content, response_content)
             response = get_response(prompt_content, base64_images)
             print(response)
+            if 'Setting & Perspective' not in response:
+                raise ValueError(f'Invalid response: {response}')
             display_panels(comic_block_ids, objects, dialogues)
             df.loc[len(df)] = [current_comic_block_id, response]
             df.to_pickle(OUTPUT_PATH)
