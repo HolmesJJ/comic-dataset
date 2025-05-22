@@ -356,15 +356,14 @@ def run():
             response_content = ''
             last_responses = responses[-(num_panels - 1):] if num_panels - 1 > 0 else []
             for idx, resp in enumerate(last_responses):
-                panel_title = f'Description Panel {idx + 1}'
+                panel_title = f'Narrative Panel {idx + 1}'
                 response_content += f'# {panel_title}\n{resp}\n'
             response_content = f'```text\n{response_content.rstrip()}\n```'
             prompt_content = read_prompt(PROMPT_PATH).format(COMIC, num_panels - 1, object_content,
                                                              dialogue_content, response_content)
+            print(prompt_content)
             response = get_response(prompt_content, base64_images)
             print(response)
-            if 'Setting & Perspective' not in response:
-                raise ValueError(f'Invalid response: {response}')
             display_panels(comic_block_ids, objects, dialogues)
             df.loc[len(df)] = [current_comic_block_id, response]
             df.to_pickle(OUTPUT_PATH)

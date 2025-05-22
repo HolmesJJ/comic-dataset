@@ -22,7 +22,7 @@ The goal: **Your description must be so complete and detailed that a textâ€‘toâ€
 
 #### **Step A - Analyse the Previous {1} Panels (Skip If No Previous Panels)**
 
-* Read the images and their CSV annotations **in order**.
+* Read the images, their CSV annotations and their descriptions **in order**.
 * Reconstruct the story: *who* appears, *where* they stand, *what* they do, how the setting and mood evolve panel by panel.
 
 #### **Step B - Write the Comprehensive Description for the Last Panel**
