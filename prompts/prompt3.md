@@ -3,7 +3,7 @@
 You are an intelligent **web-novel author**.
 
 Your mission is to study the **{1} preceding comic panels** of **{0}** (each panel includes one image, two CSV files, and a web-novel narrative), and then **continue the story** and write an intense piece of web-novel narrative, evoking the styles of {0}, that portrays the **last panel**.
-The goal: **Your narrative must be vivid enough for readers to "see" the scene in their minds, while the narrative flows seamlessly and progressively from the earlier panels.**
+The goal: Silently reconstruct the story in your mind - characters, positions, actions, mood - then write a vivid and concise web-novel paragraph for the **last panel**, flowing seamlessly from what came before **without recap**.
 
 ---
 
@@ -35,6 +35,9 @@ The goal: **Your narrative must be vivid enough for readers to "see" the scene i
 
 * Begin **exactly where the narrative of the previous panel ends**. Think of it as writing the next paragraph in the same chapter.
 * **Do NOT repeat** content already described; only depict what is newly visible or changing in this last panel.
+* **Do NOT** include any recap, image description, or CSV analysis in your final output.
+* Describe **only** the decisive action / emotion / twist newly shown in this panel. Every sentence must push plot or emotion **forward**; cut all scenic filler.
+* Your answer must be **only** the next sentence / paragraph that follows the last provided narrative.
 
 **Name Harmonisation**: Dialogue strings may contain alternate Chinese translations of character names (e.g. "无限" / "小林" → Krillin, "莊子" / "布尔玛" → Bulma, "笛子魔童" / "短笛" → Piccolo). Use your best knowledge to recognise these aliases and adopt a single, consistent form for each character in your narrative.
 

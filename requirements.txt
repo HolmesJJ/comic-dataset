@@ -3,6 +3,8 @@ numpy
 openai
 pandas
 pymongo
+openpyxl
 matplotlib
+googletrans
 opencv-python
 python-dotenv

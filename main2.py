@@ -13,6 +13,11 @@ from dotenv import load_dotenv
 from matplotlib import rcParams
 from matplotlib.patches import Patch
 from matplotlib.font_manager import FontProperties
+from PIL import Image as PILImage
+from googletrans import Translator
+from openpyxl import Workbook
+from openpyxl.styles import Alignment
+from openpyxl.drawing.image import Image as XLImage
 
 
 load_dotenv()
@@ -24,7 +29,8 @@ DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
 MODEL = os.getenv('MODEL')
 OPENAI_KEY = os.getenv('OPENAI_KEY')
-PROMPT_PATH = os.getenv('PROMPT2_PATH')
+PROMPT2_PATH = os.getenv('PROMPT2_PATH')
+PROMPT5_PATH = os.getenv('PROMPT5_PATH')
 OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'extension.pkl')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
@@ -366,8 +372,8 @@ def run(start_file=None, end_file=None):
                 panel_title = f'Description Panel {idx + 1}'
                 response_content += f'# {panel_title}\n{resp}\n'
             response_content = f'```text\n{response_content.rstrip()}\n```'
-            prompt_content = read_prompt(PROMPT_PATH).format(COMIC, num_panels - 1, object_content,
-                                                             dialogue_content, response_content)
+            prompt_content = read_prompt(PROMPT2_PATH).format(COMIC, num_panels - 1, object_content,
+                                                              dialogue_content, response_content)
             response = get_response(prompt_content, base64_images)
             print(response)
             if 'Setting & Perspective' not in response:
@@ -381,7 +387,66 @@ def run(start_file=None, end_file=None):
 
 def show_output():
     df = pd.read_pickle(OUTPUT_PATH)
-    print(df)
+    max_image_size = 256
+    char_per_line = 80
+    line_height = 17
+    temp_images = []
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Comic Responses'
+    ws.append(['comic_block_id', 'image', 'response', 'response_translated'])
+    ws.column_dimensions['A'].width = 20
+    ws.column_dimensions['B'].width = max_image_size // 7
+    ws.column_dimensions['C'].width = 80
+    ws.column_dimensions['D'].width = 80
+    for idx, row in df.iterrows():
+        comic_block_id = row['comic_block_id']
+        response = row['response']
+        prompt_content = read_prompt(PROMPT5_PATH).format(COMIC, response)
+        print(prompt_content)
+        response_translated = get_response(prompt_content, [])
+        print(response_translated)
+        parts = comic_block_id.split('_')
+        comic_id = parts[0]
+        page_folder = f'page_{parts[2]}'
+        image_path = None
+        image_path_jpg = os.path.join(COMIC_DIR, comic_id, page_folder, f'{parts[3]}.jpg')
+        image_path_png = os.path.join(COMIC_DIR, comic_id, page_folder, f'{parts[3]}.png')
+        if os.path.exists(image_path_jpg):
+            image_path = image_path_jpg
+        elif os.path.exists(image_path_png):
+            image_path = image_path_png
+        if not image_path:
+            print(image_path_jpg, image_path_png)
+            raise ValueError('Image path is missing or invalid.')
+        ws.append([comic_block_id, '', response, response_translated])
+        image_height = 0
+        if image_path:
+            pil_img = PILImage.open(image_path)
+            width, height = pil_img.size
+            scale = min(max_image_size / width, max_image_size / height, 1.0)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            resized_path = f'tmp_resized_{idx}.png'
+            pil_img.resize((new_width, new_height), PILImage.Resampling.LANCZOS).save(resized_path)
+            image = XLImage(resized_path)
+            temp_images.append(resized_path)
+            image.anchor = f'B{idx + 2}'
+            ws.add_image(image)
+            image_height = new_height * 0.75
+        for col_letter in ['C', 'D']:
+            cell = ws[f'{col_letter}{idx + 2}']
+            cell.alignment = Alignment(wrap_text=True, vertical='top')
+        line_count = max(len(response) // char_per_line + 1, len(response_translated) // char_per_line + 1)
+        text_height = line_count * line_height
+        row_height = max(image_height, text_height)
+        ws.row_dimensions[idx + 2].height = row_height
+    output_excel = os.path.splitext(OUTPUT_PATH)[0] + '.xlsx'
+    wb.save(output_excel)
+    print(f'Saved Excel to: {output_excel}')
+    for path in temp_images:
+        if os.path.exists(path):
+            os.remove(path)
 
 
 if __name__ == '__main__':
