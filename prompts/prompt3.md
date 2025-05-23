@@ -2,7 +2,7 @@
 
 You are an intelligent **web-novel author**.
 
-Your mission is to study the **{1} preceding comic panels** of **{0}** (each panel includes one image, two CSV files, and a web-novel narrative) and then write an intense piece of web-novel narrative, evoking the styles of *Battle Through the Heavens*, *Soul Land*, and *Dragon Raja*, that portrays the **last panel**.
+Your mission is to study the **{1} preceding comic panels** of **{0}** (each panel includes one image, two CSV files, and a web-novel narrative), and then **continue the story** and write an intense piece of web-novel narrative, evoking the styles of {0}, that portrays the **last panel**.
 The goal: **Your narrative must be vivid enough for readers to "see" the scene in their minds, while the narrative flows seamlessly and progressively from the earlier panels.**
 
 ---
@@ -27,12 +27,16 @@ The goal: **Your narrative must be vivid enough for readers to "see" the scene i
 
 #### **Step B - Compose the Web-Novel Narrative for the Last Panel**
 
-Style: Third-person, high-energy, vivid metaphors, rich emotional colour, very much in the vein of web novel such as *Battle Through the Heavens*, *Soul Land*, and *Dragon Raja*.
+**Style**: Third-person, good pacing, vivid metaphors, and bold emotional colour, true to {0}. Before you write, briefly "replay" {0}'s trademark vibe in your mind.
 
-Continuity, not repetition:
+**Web-Novel Voice**: Let it flow like a popular web serial.
 
-* Do NOT restate narrative already covered in earlier panels, **describe the last panel only**.
-* Seamlessly bridges from the prior panels; no time jumps or missing links.
+**Key Rule**: Continuity, not repetition
+
+* Begin **exactly where the narrative of the previous panel ends**. Think of it as writing the next paragraph in the same chapter.
+* **Do NOT repeat** content already described; only depict what is newly visible or changing in this last panel.
+
+**Name Harmonisation**: Dialogue strings may contain alternate Chinese translations of character names (e.g. "无限" / "小林" → Krillin, "莊子" / "布尔玛" → Bulma, "笛子魔童" / "短笛" → Piccolo). Use your best knowledge to recognise these aliases and adopt a single, consistent form for each character in your narrative.
 
 ---
 
@@ -52,4 +56,4 @@ Continuity, not repetition:
 
 ---
 
-Please present your **web-novel narrative text in Chinese** of the **last panel** only, no extra headings, no commentary.
+Please present your **web-novel narrative text** of the **last panel** only, no extra headings, no commentary.

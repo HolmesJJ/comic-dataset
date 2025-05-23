@@ -305,7 +305,7 @@ def display_panels(comic_block_ids, objects, dialogues):
     plt.show()
 
 
-def run():
+def run(start_file=None, end_file=None):
     if os.path.exists(OUTPUT_PATH):
         df = pd.read_pickle(OUTPUT_PATH)
         all_comic_blocks = df['comic_block_id'].tolist()
@@ -314,7 +314,15 @@ def run():
         df = pd.DataFrame(columns=['comic_block_id', 'response'])
         all_comic_blocks, responses = [], []
     comic_anime_files = sorted([f for f in os.listdir(COMIC_ANIME_DIR) if f.endswith('.csv')])
-    for comic_anime_file in comic_anime_files:
+    start_index = 0
+    end_index = len(comic_anime_files)
+    if start_file and start_file in comic_anime_files:
+        start_index = comic_anime_files.index(start_file)
+    if end_file and end_file in comic_anime_files:
+        end_index = comic_anime_files.index(end_file) + 1
+    selected_files = comic_anime_files[start_index:end_index]
+    print(selected_files)
+    for comic_anime_file in selected_files:
         comic_anime_path = os.path.join(COMIC_ANIME_DIR, comic_anime_file)
         comic_anime_df = pd.read_csv(comic_anime_path)
         for index, row in comic_anime_df.iterrows():
@@ -364,7 +372,7 @@ def run():
             print(prompt_content)
             response = get_response(prompt_content, base64_images)
             print(response)
-            display_panels(comic_block_ids, objects, dialogues)
+            # display_panels(comic_block_ids, objects, dialogues)
             df.loc[len(df)] = [current_comic_block_id, response]
             df.to_pickle(OUTPUT_PATH)
             responses.append(response)
@@ -379,5 +387,5 @@ def show_output():
 if __name__ == '__main__':
     # check_matching()
     # check_difference()
-    run()
+    run('144.csv', '144.csv')
     # show_output()

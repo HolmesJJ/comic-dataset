@@ -48,6 +48,7 @@ Describe **all critical visual details** under the headings below (use full sent
 * Maintain clear spatial wording, use relative directions **(left/right/upstage/downstage)** and depth cues **(foreground/midground/background)**.
 * Keep language objective and unambiguous (e.g., "several" → "three", "big" → "occupying the top‑right quadrant").
 * When dynamic or destructive elements appear, state their precise placement and motion.
+* **Name Harmonisation**: Dialogue strings may contain alternate Chinese translations of character names (e.g. "无限" / "小林" → Krillin, "莊子" / "布尔玛" → Bulma, "笛子魔童" / "短笛" → Piccolo). Use your best knowledge to recognise these aliases and adopt a single, consistent form for each character in your narrative.
 
 ---
 
