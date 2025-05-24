@@ -99,12 +99,12 @@ def get_response(prompt_content, base64_images, stream=False):
                 'content': content
             }
         ],
-        # reasoning_effort='high'  # o3
+        # reasoning_effort='high',  # o3, gemini
         # extra_body={
         #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
         # },
         # extra_body={
-        #     'enable_thinking': True
+        #     'enable_thinking': True  # qwen
         # },
         stream=stream,  # qwen
         temperature=0  # gpt-4o, qwen
@@ -427,6 +427,7 @@ def run(start_file=None, end_file=None):
             response_content = f'```text\n{response_content.rstrip()}\n```'
             prompt_content = read_prompt(PROMPT2_PATH).format(COMIC, num_panels - 1, object_content,
                                                               dialogue_content, response_content)
+            print(prompt_content)
             response = get_response(prompt_content, base64_images)
             # reasoning, response = get_response(prompt_content, base64_images, True)
             # print("Reasoning:", reasoning)

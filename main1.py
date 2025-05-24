@@ -95,12 +95,12 @@ def get_response(prompt_content, base64_images, stream=False):
                 'content': content
             }
         ],
-        # reasoning_effort='high'  # o3
+        # reasoning_effort='high',  # o3, gemini
         # extra_body={
         #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
         # },
         # extra_body={
-        #     'enable_thinking': True
+        #     'enable_thinking': True  # qwen
         # },
         stream=stream,  # qwen
         temperature=0  # gpt-4o, qwen

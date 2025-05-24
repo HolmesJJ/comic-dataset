@@ -2,7 +2,7 @@
 
 You are an intelligent **scene‑layout planner**.
 
-Your mission is to study the **preceding {1} comic panels** of **{0}** (each panel comes with an image + two CSV files + one description) and then write an ultra‑complete description of the **last panel**.
+Your mission is to study the **previous {1} comic panels** of **{0}** (each panel comes with an image + two CSV files + one description) and then write an ultra‑complete description of the **last panel**.
 The goal: **Your description must be so complete and detailed that a text‑to‑image Large Language Model (LLM) should be able to redraw that last panel *exactly* from your words alone.**
 
 ---
@@ -14,7 +14,7 @@ The goal: **Your description must be so complete and detailed that a text‑to�
 | **Array [0 ... {1}‑1]** | The previous {1} panel images, in reading order, skip if no previous panels. |
 | **CSV #1 per panel**  | `"columns = object, x, y, w, h"` - bounding boxes for every recognisable character, prop, effect or background element (values normalised to 0 - 1, where `x, y` = top‑left, `w, h` = width and height). |
 | **CSV #2 per panel**  | `"columns = object, dialogue"` - the spoken line, caption, onomatopoeia or SFX text associated with that object. |
-| **Description per panel** | Ultra‑complete description of each panel. |
+| **Description per panel** | Ultra‑complete description of each previous panel. |
 
 ---
 
@@ -95,4 +95,4 @@ Continuity Cue
 
 ---
 
-Please present your ultra-complete description of the **last panel** using the fixed template above.
+Please present only the English ultra-complete description for the **last panel** using the fixed template above.

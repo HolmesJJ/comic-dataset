@@ -28,9 +28,9 @@ COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC, '1')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
-MODEL = os.getenv('QWEN_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
-MODEL_KEY = os.getenv('QWEN_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
-MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
+MODEL = os.getenv('GEMINI_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
+MODEL_KEY = os.getenv('GEMINI_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
+MODEL_URL = os.getenv('GEMINI_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT3_PATH = os.getenv('PROMPT3_PATH')
 PROMPT5_PATH = os.getenv('PROMPT5_PATH')
 OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'novel.pkl')
@@ -99,13 +99,13 @@ def get_response(prompt_content, base64_images, stream=False):
                 'content': content
             }
         ],
-        # reasoning_effort='high'  # o3
+        reasoning_effort='high',  # o3, gemini
         # extra_body={
         #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
         # },
-        extra_body={
-            'enable_thinking': True
-        },
+        # extra_body={
+        #     'enable_thinking': True  # qwen
+        # },
         stream=stream,  # qwen
         temperature=0  # gpt-4o, qwen
     )
@@ -425,11 +425,11 @@ def run(start_file=None, end_file=None):
                 panel_title = f'Narrative Panel {idx + 1}'
                 response_content += f'# {panel_title}\n{resp}\n'
             response_content = f'```text\n{response_content.rstrip()}\n```'
-            prompt_content = read_prompt(PROMPT3_PATH).format(COMIC, num_panels - 1, object_content,
-                                                              dialogue_content, response_content)
-            # response = get_response(prompt_content, base64_images)
-            reasoning, response = get_response(prompt_content, base64_images, True)
-            print("Reasoning:", reasoning)
+            prompt_content = read_prompt(PROMPT3_PATH).format(COMIC, num_panels - 1, response_content)
+            print(prompt_content)
+            response = get_response(prompt_content, base64_images)
+            # reasoning, response = get_response(prompt_content, base64_images, True)
+            # print("Reasoning:", reasoning)
             print("Response:", response)
             # display_panels(comic_block_ids, objects, dialogues)
             df.loc[len(df)] = [current_comic_block_id, response]
