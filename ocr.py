@@ -17,8 +17,9 @@ load_dotenv()
 COMIC = os.getenv('COMIC')
 COMIC_DIR = os.getenv('COMIC_DIR')
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
-MODEL = os.getenv('MODEL')
-OPENAI_KEY = os.getenv('OPENAI_KEY')
+MODEL = os.getenv('GPT_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
+MODEL_KEY = os.getenv('GPT_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
+MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT_PATH = os.getenv('PROMPT4_PATH')
 
 
@@ -48,7 +49,8 @@ def image_to_base64(image_path):
 
 
 def get_response(prompt_content, base64_image):
-    client = OpenAI(api_key=OPENAI_KEY)
+    client = OpenAI(api_key=MODEL_KEY)
+    # client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
@@ -68,7 +70,11 @@ def get_response(prompt_content, base64_image):
                 ]
             }
         ],
-        temperature=0
+        # reasoning_effort='high'  # o3
+        # extra_body={
+        #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
+        # },
+        temperature=0  # gpt-4o
     )
     return response.choices[0].message.content
 

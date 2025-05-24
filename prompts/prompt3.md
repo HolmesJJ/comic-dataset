@@ -59,4 +59,4 @@ The goal: Silently reconstruct the story in your mind - characters, positions, a
 
 ---
 
-Please present your **web-novel narrative text** of the **last panel** only, no extra headings, no commentary.
+Please present your **web-novel narrative text** in English of the **last panel** only, no extra headings, no commentary.

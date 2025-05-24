@@ -1,3 +1,4 @@
+import io
 import os
 import cv2
 import base64
@@ -27,8 +28,9 @@ COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC, '1')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
-MODEL = os.getenv('MODEL')
-OPENAI_KEY = os.getenv('OPENAI_KEY')
+MODEL = os.getenv('GPT_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
+MODEL_KEY = os.getenv('GPT_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
+MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT2_PATH = os.getenv('PROMPT2_PATH')
 PROMPT5_PATH = os.getenv('PROMPT5_PATH')
 OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'extension.pkl')
@@ -66,8 +68,16 @@ def image_to_base64(image_path):
         return base64.b64encode(img_file.read()).decode('utf-8')
 
 
+async def translate_text(text):
+    translator = Translator()
+    result = await translator.translate(text, dest='zh-CN')
+    print(result)
+    return result.text
+
+
 def get_response(prompt_content, base64_images):
-    client = OpenAI(api_key=OPENAI_KEY)
+    client = OpenAI(api_key=MODEL_KEY)
+    # client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
     content = [
         {
             'type': 'text',
@@ -89,7 +99,11 @@ def get_response(prompt_content, base64_images):
                 'content': content
             }
         ],
-        temperature=0
+        # reasoning_effort='high'  # o3
+        # extra_body={
+        #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
+        # },
+        temperature=0  # gpt-4o
     )
     return response.choices[0].message.content
 
@@ -246,7 +260,20 @@ def get_base64_images(comic_block_ids):
         if not image_path:
             print(image_path_jpg, image_path_png)
             raise ValueError('Image path is missing or invalid.')
-        base64_images.append(image_to_base64(image_path))
+        print(image_path)
+        with PILImage.open(image_path) as img:
+            width, height = img.size
+            if width < height:
+                scale = min(768 / width, 2000 / height)
+            else:
+                scale = min(768 / height, 2000 / width)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            resized_img = img.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
+            buffer = io.BytesIO()
+            resized_img.save(buffer, format='JPEG')
+            base64_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            base64_images.append(base64_str)
     return base64_images
 
 
