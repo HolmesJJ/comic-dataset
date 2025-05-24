@@ -75,7 +75,7 @@ async def translate_text(text):
     return result.text
 
 
-def get_response(prompt_content, base64_images):
+def get_response(prompt_content, base64_images, stream=False):
     client = OpenAI(api_key=MODEL_KEY)
     # client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
     content = [
@@ -103,9 +103,34 @@ def get_response(prompt_content, base64_images):
         # extra_body={
         #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
         # },
-        temperature=0  # gpt-4o
+        # extra_body={
+        #     'enable_thinking': True
+        # },
+        stream=stream,  # qwen
+        temperature=0  # gpt-4o, qwen
     )
-    return response.choices[0].message.content
+    if stream:
+        reasoning_content = ''
+        answer_content = ''
+        is_answering = False
+        print('\n' + '=' * 20 + 'Reasoning' + '=' * 20 + '\n')
+        for chunk in response:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            if hasattr(delta, 'reasoning_content') and delta.reasoning_content is not None:
+                if not is_answering:
+                    print(delta.reasoning_content, end='', flush=True)
+                reasoning_content += delta.reasoning_content
+            if hasattr(delta, 'content') and delta.content:
+                if not is_answering:
+                    print('\n' + '=' * 20 + 'Response' + '=' * 20 + '\n')
+                    is_answering = True
+                print(delta.content, end="", flush=True)
+                answer_content += delta.content
+        return reasoning_content, answer_content
+    else:
+        return response.choices[0].message.content
 
 
 def check_matching():
@@ -354,6 +379,7 @@ def run(start_file=None, end_file=None):
     if end_file and end_file in comic_anime_files:
         end_index = comic_anime_files.index(end_file) + 1
     selected_files = comic_anime_files[start_index:end_index]
+    print(selected_files)
     for comic_anime_file in selected_files:
         comic_anime_path = os.path.join(COMIC_ANIME_DIR, comic_anime_file)
         comic_anime_df = pd.read_csv(comic_anime_path)
@@ -402,10 +428,10 @@ def run(start_file=None, end_file=None):
             prompt_content = read_prompt(PROMPT2_PATH).format(COMIC, num_panels - 1, object_content,
                                                               dialogue_content, response_content)
             response = get_response(prompt_content, base64_images)
-            print(response)
-            if 'Setting & Perspective' not in response:
-                raise ValueError(f'Invalid response: {response}')
-            display_panels(comic_block_ids, objects, dialogues)
+            # reasoning, response = get_response(prompt_content, base64_images, True)
+            # print("Reasoning:", reasoning)
+            print("Response:", response)
+            # display_panels(comic_block_ids, objects, dialogues)
             df.loc[len(df)] = [current_comic_block_id, response]
             df.to_pickle(OUTPUT_PATH)
             responses.append(response)
@@ -413,6 +439,9 @@ def run(start_file=None, end_file=None):
 
 
 def show_output():
+    label_summary_path = os.path.join(OBJECT_DIR, 'label_summary.csv')
+    label_summary_df = pd.read_csv(label_summary_path)
+    label_names = label_summary_df['label_name'].tolist()
     df = pd.read_pickle(OUTPUT_PATH)
     max_image_size = 256
     char_per_line = 80
@@ -429,8 +458,7 @@ def show_output():
     for idx, row in df.iterrows():
         comic_block_id = row['comic_block_id']
         response = row['response']
-        prompt_content = read_prompt(PROMPT5_PATH).format(COMIC, response)
-        print(prompt_content)
+        prompt_content = read_prompt(PROMPT5_PATH).format(COMIC, label_names, response)
         response_translated = get_response(prompt_content, [])
         print(response_translated)
         parts = comic_block_id.split('_')

@@ -71,35 +71,62 @@ def draw_bounding_boxes(image_path, response_json):
     cv2.destroyAllWindows()
 
 
-def get_response(prompt_content, base64_image):
+def get_response(prompt_content, base64_images, stream=False):
     client = OpenAI(api_key=MODEL_KEY)
     # client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
+    content = [
+        {
+            'type': 'text',
+            'text': prompt_content,
+        }
+    ]
+    for base64_image in base64_images:
+        content.append({
+            'type': 'image_url',
+            'image_url': {
+                'url': f'data:image/jpeg;base64,{base64_image}'
+            }
+        })
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
             {
                 'role': 'user',
-                'content': [
-                    {
-                        'type': 'text',
-                        'text': prompt_content,
-                    },
-                    {
-                        'type': 'image_url',
-                        'image_url': {
-                            'url': f'data:image/jpeg;base64,{base64_image}'
-                        },
-                    },
-                ]
+                'content': content
             }
         ],
         # reasoning_effort='high'  # o3
         # extra_body={
         #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
         # },
-        temperature=0  # gpt-4o
+        # extra_body={
+        #     'enable_thinking': True
+        # },
+        stream=stream,  # qwen
+        temperature=0  # gpt-4o, qwen
     )
-    return response.choices[0].message.content
+    if stream:
+        reasoning_content = ''
+        answer_content = ''
+        is_answering = False
+        print('\n' + '=' * 20 + 'Reasoning' + '=' * 20 + '\n')
+        for chunk in response:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            if hasattr(delta, 'reasoning_content') and delta.reasoning_content is not None:
+                if not is_answering:
+                    print(delta.reasoning_content, end='', flush=True)
+                reasoning_content += delta.reasoning_content
+            if hasattr(delta, 'content') and delta.content:
+                if not is_answering:
+                    print('\n' + '=' * 20 + 'Response' + '=' * 20 + '\n')
+                    is_answering = True
+                print(delta.content, end="", flush=True)
+                answer_content += delta.content
+        return reasoning_content, answer_content
+    else:
+        return response.choices[0].message.content
 
 
 def run():
@@ -109,7 +136,10 @@ def run():
                 image_path = os.path.join(root, file)
                 base64_image = image_to_base64(image_path)
                 prompt_content = read_prompt(PROMPT_PATH)
-                response = get_response(prompt_content, base64_image)
+                response = get_response(prompt_content, [base64_image])
+                # reasoning, response = get_response(prompt_content, [base64_image], True)
+                # print("Reasoning:", reasoning)
+                print("Response:", response)
                 response_json = extract_json(response)
                 print('JSON response:', response_json)
                 draw_bounding_boxes(image_path, response_json)

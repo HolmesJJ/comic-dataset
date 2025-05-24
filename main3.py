@@ -1,3 +1,4 @@
+import io
 import os
 import cv2
 import base64
@@ -27,8 +28,9 @@ COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC, '1')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
-MODEL = os.getenv('MODEL')
-OPENAI_KEY = os.getenv('OPENAI_KEY')
+MODEL = os.getenv('QWEN_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
+MODEL_KEY = os.getenv('QWEN_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
+MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT3_PATH = os.getenv('PROMPT3_PATH')
 PROMPT5_PATH = os.getenv('PROMPT5_PATH')
 OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'novel.pkl')
@@ -73,8 +75,9 @@ async def translate_text(text):
     return result.text
 
 
-def get_response(prompt_content, base64_images):
-    client = OpenAI(api_key=OPENAI_KEY)
+def get_response(prompt_content, base64_images, stream=False):
+    # client = OpenAI(api_key=MODEL_KEY)
+    client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
     content = [
         {
             'type': 'text',
@@ -96,9 +99,38 @@ def get_response(prompt_content, base64_images):
                 'content': content
             }
         ],
-        temperature=0
+        # reasoning_effort='high'  # o3
+        # extra_body={
+        #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
+        # },
+        extra_body={
+            'enable_thinking': True
+        },
+        stream=stream,  # qwen
+        temperature=0  # gpt-4o, qwen
     )
-    return response.choices[0].message.content
+    if stream:
+        reasoning_content = ''
+        answer_content = ''
+        is_answering = False
+        print('\n' + '=' * 20 + 'Reasoning' + '=' * 20 + '\n')
+        for chunk in response:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            if hasattr(delta, 'reasoning_content') and delta.reasoning_content is not None:
+                if not is_answering:
+                    print(delta.reasoning_content, end='', flush=True)
+                reasoning_content += delta.reasoning_content
+            if hasattr(delta, 'content') and delta.content:
+                if not is_answering:
+                    print('\n' + '=' * 20 + 'Response' + '=' * 20 + '\n')
+                    is_answering = True
+                print(delta.content, end="", flush=True)
+                answer_content += delta.content
+        return reasoning_content, answer_content
+    else:
+        return response.choices[0].message.content
 
 
 def check_matching():
@@ -253,7 +285,20 @@ def get_base64_images(comic_block_ids):
         if not image_path:
             print(image_path_jpg, image_path_png)
             raise ValueError('Image path is missing or invalid.')
-        base64_images.append(image_to_base64(image_path))
+        print(image_path)
+        with PILImage.open(image_path) as img:
+            width, height = img.size
+            if width < height:
+                scale = min(768 / width, 2000 / height)
+            else:
+                scale = min(768 / height, 2000 / width)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            resized_img = img.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
+            buffer = io.BytesIO()
+            resized_img.save(buffer, format='JPEG')
+            base64_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            base64_images.append(base64_str)
     return base64_images
 
 
@@ -382,9 +427,10 @@ def run(start_file=None, end_file=None):
             response_content = f'```text\n{response_content.rstrip()}\n```'
             prompt_content = read_prompt(PROMPT3_PATH).format(COMIC, num_panels - 1, object_content,
                                                               dialogue_content, response_content)
-            print(prompt_content)
-            response = get_response(prompt_content, base64_images)
-            print(response)
+            # response = get_response(prompt_content, base64_images)
+            reasoning, response = get_response(prompt_content, base64_images, True)
+            print("Reasoning:", reasoning)
+            print("Response:", response)
             # display_panels(comic_block_ids, objects, dialogues)
             df.loc[len(df)] = [current_comic_block_id, response]
             df.to_pickle(OUTPUT_PATH)
@@ -393,6 +439,9 @@ def run(start_file=None, end_file=None):
 
 
 def show_output():
+    label_summary_path = os.path.join(OBJECT_DIR, 'label_summary.csv')
+    label_summary_df = pd.read_csv(label_summary_path)
+    label_names = label_summary_df['label_name'].tolist()
     df = pd.read_pickle(OUTPUT_PATH)
     max_image_size = 256
     char_per_line = 80
@@ -409,8 +458,7 @@ def show_output():
     for idx, row in df.iterrows():
         comic_block_id = row['comic_block_id']
         response = row['response']
-        prompt_content = read_prompt(PROMPT5_PATH).format(COMIC, response)
-        print(prompt_content)
+        prompt_content = read_prompt(PROMPT5_PATH).format(COMIC, label_names, response)
         response_translated = get_response(prompt_content, [])
         print(response_translated)
         parts = comic_block_id.split('_')
@@ -459,5 +507,5 @@ def show_output():
 if __name__ == '__main__':
     # check_matching()
     # check_difference()
-    run('144.csv', '144.csv')
+    run()
     # show_output()
