@@ -28,9 +28,9 @@ COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC, '1')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
-MODEL = os.getenv('GEMINI_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
-MODEL_KEY = os.getenv('GEMINI_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
-MODEL_URL = os.getenv('GEMINI_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
+MODEL = os.getenv('GPT_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
+MODEL_KEY = os.getenv('GPT_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
+MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT3_PATH = os.getenv('PROMPT3_PATH')
 PROMPT5_PATH = os.getenv('PROMPT5_PATH')
 OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'novel.pkl')
@@ -76,8 +76,8 @@ async def translate_text(text):
 
 
 def get_response(prompt_content, base64_images, stream=False):
-    # client = OpenAI(api_key=MODEL_KEY)
-    client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
+    client = OpenAI(api_key=MODEL_KEY)
+    # client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
     content = [
         {
             'type': 'text',
@@ -99,7 +99,7 @@ def get_response(prompt_content, base64_images, stream=False):
                 'content': content
             }
         ],
-        reasoning_effort='high',  # o3, gemini
+        # reasoning_effort='high',  # o3, gemini
         # extra_body={
         #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
         # },
