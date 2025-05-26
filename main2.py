@@ -294,7 +294,7 @@ def get_base64_images(comic_block_ids):
                 scale = min(768 / height, 2000 / width)
             new_width = int(width * scale)
             new_height = int(height * scale)
-            resized_img = img.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
+            resized_img = img.resize((new_width, new_height), PILImage.Resampling.LANCZOS).convert('RGB')
             buffer = io.BytesIO()
             resized_img.save(buffer, format='JPEG')
             base64_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -425,8 +425,7 @@ def run(start_file=None, end_file=None):
                 panel_title = f'Description Panel {idx + 1}'
                 response_content += f'# {panel_title}\n{resp}\n'
             response_content = f'```text\n{response_content.rstrip()}\n```'
-            prompt_content = read_prompt(PROMPT2_PATH).format(COMIC, num_panels - 1, object_content,
-                                                              dialogue_content, response_content)
+            prompt_content = read_prompt(PROMPT2_PATH).format(COMIC, num_panels - 1, response_content)
             print(prompt_content)
             response = get_response(prompt_content, base64_images)
             # reasoning, response = get_response(prompt_content, base64_images, True)
@@ -440,18 +439,15 @@ def run(start_file=None, end_file=None):
 
 
 def show_output():
-    label_summary_path = os.path.join(OBJECT_DIR, 'label_summary.csv')
-    label_summary_df = pd.read_csv(label_summary_path)
-    label_names = label_summary_df['label_name'].tolist()
     df = pd.read_pickle(OUTPUT_PATH)
     max_image_size = 256
     char_per_line = 80
-    line_height = 17
+    line_height = 18
     temp_images = []
     wb = Workbook()
     ws = wb.active
     ws.title = 'Comic Responses'
-    ws.append(['comic_block_id', 'image', 'response', 'response_translated'])
+    ws.append(['comic_block_id', 'image', 'response'])
     ws.column_dimensions['A'].width = 20
     ws.column_dimensions['B'].width = max_image_size // 7
     ws.column_dimensions['C'].width = 80
@@ -459,9 +455,6 @@ def show_output():
     for idx, row in df.iterrows():
         comic_block_id = row['comic_block_id']
         response = row['response']
-        prompt_content = read_prompt(PROMPT5_PATH).format(COMIC, label_names, response)
-        response_translated = get_response(prompt_content, [])
-        print(response_translated)
         parts = comic_block_id.split('_')
         comic_id = parts[0]
         page_folder = f'page_{parts[2]}'
@@ -493,7 +486,7 @@ def show_output():
         for col_letter in ['C', 'D']:
             cell = ws[f'{col_letter}{idx + 2}']
             cell.alignment = Alignment(wrap_text=True, vertical='top')
-        line_count = max(len(response) // char_per_line + 1, len(response_translated) // char_per_line + 1)
+        line_count = len(response) // char_per_line + 1
         text_height = line_count * line_height
         row_height = max(image_height, text_height)
         ws.row_dimensions[idx + 2].height = row_height
@@ -508,5 +501,5 @@ def show_output():
 if __name__ == '__main__':
     # check_matching()
     # check_difference()
-    run()
+    run('145.csv', '145.csv')
     # show_output()

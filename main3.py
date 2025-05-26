@@ -294,7 +294,7 @@ def get_base64_images(comic_block_ids):
                 scale = min(768 / height, 2000 / width)
             new_width = int(width * scale)
             new_height = int(height * scale)
-            resized_img = img.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
+            resized_img = img.resize((new_width, new_height), PILImage.Resampling.LANCZOS).convert('RGB')
             buffer = io.BytesIO()
             resized_img.save(buffer, format='JPEG')
             base64_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
@@ -507,5 +507,5 @@ def show_output():
 if __name__ == '__main__':
     # check_matching()
     # check_difference()
-    run()
+    run('145.csv', '145.csv')
     # show_output()
