@@ -32,7 +32,6 @@ MODEL = os.getenv('GPT_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MO
 MODEL_KEY = os.getenv('GPT_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
 MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT2_PATH = os.getenv('PROMPT2_PATH')
-PROMPT5_PATH = os.getenv('PROMPT5_PATH')
 OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'extension.pkl')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
@@ -107,7 +106,7 @@ def get_response(prompt_content, base64_images, stream=False):
         #     'enable_thinking': True  # qwen
         # },
         stream=stream,  # qwen
-        temperature=0  # gpt-4o, qwen
+        temperature=0  # gpt-4o, qwen, gemini
     )
     if stream:
         reasoning_content = ''
@@ -454,7 +453,7 @@ def show_output():
     ws.column_dimensions['D'].width = 80
     for idx, row in df.iterrows():
         comic_block_id = row['comic_block_id']
-        response = row['response']
+        response = row['response'] if row['response'] else ''
         parts = comic_block_id.split('_')
         comic_id = parts[0]
         page_folder = f'page_{parts[2]}'
@@ -468,7 +467,7 @@ def show_output():
         if not image_path:
             print(image_path_jpg, image_path_png)
             raise ValueError('Image path is missing or invalid.')
-        ws.append([comic_block_id, '', response, response_translated])
+        ws.append([comic_block_id, '', response])
         image_height = 0
         if image_path:
             pil_img = PILImage.open(image_path)

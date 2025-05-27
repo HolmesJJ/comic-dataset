@@ -103,7 +103,7 @@ def get_response(prompt_content, base64_images, stream=False):
         #     'enable_thinking': True  # qwen
         # },
         stream=stream,  # qwen
-        temperature=0  # gpt-4o, qwen
+        temperature=0  # gpt-4o, qwen, gemini
     )
     if stream:
         reasoning_content = ''

@@ -107,7 +107,7 @@ def get_response(prompt_content, base64_images, stream=False):
         #     'enable_thinking': True  # qwen
         # },
         stream=stream,  # qwen
-        temperature=0  # gpt-4o, qwen
+        temperature=0  # gpt-4o, qwen, gemini
     )
     if stream:
         reasoning_content = ''
@@ -457,7 +457,7 @@ def show_output():
     ws.column_dimensions['D'].width = 80
     for idx, row in df.iterrows():
         comic_block_id = row['comic_block_id']
-        response = row['response']
+        response = row['response'] if row['response'] else ''
         prompt_content = read_prompt(PROMPT5_PATH).format(COMIC, label_names, response)
         response_translated = get_response(prompt_content, [])
         print(response_translated)
