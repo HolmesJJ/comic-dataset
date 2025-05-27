@@ -33,7 +33,7 @@ MODEL_KEY = os.getenv('GPT_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
 MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT3_PATH = os.getenv('PROMPT3_PATH')
 PROMPT5_PATH = os.getenv('PROMPT5_PATH')
-OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'novel.pkl')
+OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'novel', 'short prompt', COMIC, '1', 'novel.pkl')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
 FONT_PROP = FontProperties(fname=FONT_PATH)
