@@ -33,7 +33,7 @@ MODEL_KEY = os.getenv('GEMINI_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
 MODEL_URL = os.getenv('GEMINI_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT3_PATH = os.getenv('PROMPT3_PATH')
 PROMPT5_PATH = os.getenv('PROMPT5_PATH')
-OUTPUT_DIR = os.path.join(os.getenv('OUTPUT_DIR'), 'extension', 'short prompt', COMIC, '1')
+OUTPUT_DIR = os.path.join(os.getenv('OUTPUT_DIR'), 'novel', 'short prompt', COMIC, '1')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
 FONT_PROP = FontProperties(fname=FONT_PATH)
@@ -364,7 +364,7 @@ def display_panels(comic_block_ids, objects, dialogues):
 
 
 def run(start_file=None, end_file=None):
-    output_path = os.path.join(OUTPUT_DIR, 'extension_gemini-2.5.pkl')
+    output_path = os.path.join(OUTPUT_DIR, 'novel_gemini-2.5.pkl')
     if os.path.exists(output_path):
         df = pd.read_pickle(output_path)
         all_comic_blocks = df['comic_block_id'].tolist()
@@ -440,7 +440,7 @@ def run(start_file=None, end_file=None):
 
 
 def show_output():
-    output_path = os.path.join(OUTPUT_DIR, 'extension_gemini-2.5.pkl')
+    output_path = os.path.join(OUTPUT_DIR, 'novel_gemini-2.5.pkl')
     label_summary_path = os.path.join(OBJECT_DIR, 'label_summary.csv')
     label_summary_df = pd.read_csv(label_summary_path)
     label_names = label_summary_df['label_name'].tolist()
@@ -462,6 +462,8 @@ def show_output():
         response = row['response'] if row['response'] else ''
         prompt_content = read_prompt(PROMPT5_PATH).format(COMIC, label_names, response)
         response_translated = get_response(prompt_content, [])
+        if not response_translated:
+            response_translated = ''
         print(response_translated)
         parts = comic_block_id.split('_')
         comic_id = parts[0]

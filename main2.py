@@ -439,9 +439,9 @@ def run(start_file=None, end_file=None):
             print(f'[Saved] {current_comic_block_id} -> pickle ({len(df)} total)')
 
 
-def show_output(anime_folder):
+def show_output():
     output_path = os.path.join(OUTPUT_DIR, 'extension_gemini-2.5.pkl')
-    df = pd.read_pickle(output_path, anime_folder)
+    df = pd.read_pickle(output_path)
     max_image_size = 256
     char_per_line = 80
     line_height = 18
