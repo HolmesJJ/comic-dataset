@@ -28,12 +28,12 @@ COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC, '1')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
-MODEL = os.getenv('GPT_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
-MODEL_KEY = os.getenv('GPT_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
-MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
+MODEL = os.getenv('GEMINI_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
+MODEL_KEY = os.getenv('GEMINI_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
+MODEL_URL = os.getenv('GEMINI_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT3_PATH = os.getenv('PROMPT3_PATH')
 PROMPT5_PATH = os.getenv('PROMPT5_PATH')
-OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'novel', 'short prompt', COMIC, '1', 'novel.pkl')
+OUTPUT_DIR = os.path.join(os.getenv('OUTPUT_DIR'), 'extension', 'short prompt', COMIC, '1')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
 FONT_PROP = FontProperties(fname=FONT_PATH)
@@ -76,8 +76,8 @@ async def translate_text(text):
 
 
 def get_response(prompt_content, base64_images, stream=False):
-    client = OpenAI(api_key=MODEL_KEY)
-    # client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
+    # client = OpenAI(api_key=MODEL_KEY)
+    client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
     content = [
         {
             'type': 'text',
@@ -99,7 +99,7 @@ def get_response(prompt_content, base64_images, stream=False):
                 'content': content
             }
         ],
-        # reasoning_effort='high',  # o3, gemini
+        reasoning_effort='high',  # o3, gemini
         # extra_body={
         #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
         # },
@@ -364,8 +364,9 @@ def display_panels(comic_block_ids, objects, dialogues):
 
 
 def run(start_file=None, end_file=None):
-    if os.path.exists(OUTPUT_PATH):
-        df = pd.read_pickle(OUTPUT_PATH)
+    output_path = os.path.join(OUTPUT_DIR, 'extension_gemini-2.5.pkl')
+    if os.path.exists(output_path):
+        df = pd.read_pickle(output_path)
         all_comic_blocks = df['comic_block_id'].tolist()
         responses = df['response'].tolist()
     else:
@@ -433,16 +434,17 @@ def run(start_file=None, end_file=None):
             print("Response:", response)
             # display_panels(comic_block_ids, objects, dialogues)
             df.loc[len(df)] = [current_comic_block_id, response]
-            df.to_pickle(OUTPUT_PATH)
+            df.to_pickle(output_path)
             responses.append(response)
             print(f'[Saved] {current_comic_block_id} -> pickle ({len(df)} total)')
 
 
 def show_output():
+    output_path = os.path.join(OUTPUT_DIR, 'extension_gemini-2.5.pkl')
     label_summary_path = os.path.join(OBJECT_DIR, 'label_summary.csv')
     label_summary_df = pd.read_csv(label_summary_path)
     label_names = label_summary_df['label_name'].tolist()
-    df = pd.read_pickle(OUTPUT_PATH)
+    df = pd.read_pickle(output_path)
     max_image_size = 256
     char_per_line = 80
     line_height = 17
@@ -496,7 +498,7 @@ def show_output():
         text_height = line_count * line_height
         row_height = max(image_height, text_height)
         ws.row_dimensions[idx + 2].height = row_height
-    output_excel = os.path.splitext(OUTPUT_PATH)[0] + '.xlsx'
+    output_excel = os.path.splitext(output_path)[0] + '.xlsx'
     wb.save(output_excel)
     print(f'Saved Excel to: {output_excel}')
     for path in temp_images:

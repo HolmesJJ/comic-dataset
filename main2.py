@@ -17,6 +17,7 @@ from matplotlib.font_manager import FontProperties
 from PIL import Image as PILImage
 from googletrans import Translator
 from openpyxl import Workbook
+from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 from openpyxl.drawing.image import Image as XLImage
 
@@ -28,11 +29,11 @@ COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC, '1')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
-MODEL = os.getenv('GPT_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
-MODEL_KEY = os.getenv('GPT_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
-MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
+MODEL = os.getenv('GEMINI_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
+MODEL_KEY = os.getenv('GEMINI_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
+MODEL_URL = os.getenv('GEMINI_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT2_PATH = os.getenv('PROMPT2_PATH')
-OUTPUT_PATH = os.path.join(os.getenv('OUTPUT_DIR'), 'extension.pkl')
+OUTPUT_DIR = os.path.join(os.getenv('OUTPUT_DIR'), 'extension', 'short prompt', COMIC, '1')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
 FONT_PROP = FontProperties(fname=FONT_PATH)
@@ -75,8 +76,8 @@ async def translate_text(text):
 
 
 def get_response(prompt_content, base64_images, stream=False):
-    client = OpenAI(api_key=MODEL_KEY)
-    # client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
+    # client = OpenAI(api_key=MODEL_KEY)
+    client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
     content = [
         {
             'type': 'text',
@@ -98,7 +99,7 @@ def get_response(prompt_content, base64_images, stream=False):
                 'content': content
             }
         ],
-        # reasoning_effort='high',  # o3, gemini
+        reasoning_effort='high',  # o3, gemini
         # extra_body={
         #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
         # },
@@ -363,8 +364,9 @@ def display_panels(comic_block_ids, objects, dialogues):
 
 
 def run(start_file=None, end_file=None):
-    if os.path.exists(OUTPUT_PATH):
-        df = pd.read_pickle(OUTPUT_PATH)
+    output_path = os.path.join(OUTPUT_DIR, 'extension_gemini-2.5.pkl')
+    if os.path.exists(output_path):
+        df = pd.read_pickle(output_path)
         all_comic_blocks = df['comic_block_id'].tolist()
         responses = df['response'].tolist()
     else:
@@ -432,13 +434,14 @@ def run(start_file=None, end_file=None):
             print("Response:", response)
             # display_panels(comic_block_ids, objects, dialogues)
             df.loc[len(df)] = [current_comic_block_id, response]
-            df.to_pickle(OUTPUT_PATH)
+            df.to_pickle(output_path)
             responses.append(response)
             print(f'[Saved] {current_comic_block_id} -> pickle ({len(df)} total)')
 
 
-def show_output():
-    df = pd.read_pickle(OUTPUT_PATH)
+def show_output(anime_folder):
+    output_path = os.path.join(OUTPUT_DIR, 'extension_gemini-2.5.pkl')
+    df = pd.read_pickle(output_path, anime_folder)
     max_image_size = 256
     char_per_line = 80
     line_height = 18
@@ -489,7 +492,7 @@ def show_output():
         text_height = line_count * line_height
         row_height = max(image_height, text_height)
         ws.row_dimensions[idx + 2].height = row_height
-    output_excel = os.path.splitext(OUTPUT_PATH)[0] + '.xlsx'
+    output_excel = os.path.splitext(output_path)[0] + '.xlsx'
     wb.save(output_excel)
     print(f'Saved Excel to: {output_excel}')
     for path in temp_images:
@@ -497,8 +500,47 @@ def show_output():
             os.remove(path)
 
 
+def show_manual_output(anime_folder):
+    max_image_size = 256
+    temp_images = []
+    output_path = os.path.join(OUTPUT_DIR, 'extension.xlsx')
+    wb = load_workbook(output_path)
+    ws = wb.active
+    id_col = 'A'
+    img_col = 'D'
+    ws[f'{img_col}1'] = '即梦'
+    ws.column_dimensions[img_col].width = 40
+    for row in range(2, ws.max_row + 1):
+        img_id = ws[f'{id_col}{row}'].value
+        if not img_id:
+            continue
+        image_path = os.path.join(OUTPUT_DIR, anime_folder, f'{img_id}.jpeg')
+        if not os.path.exists(image_path):
+            continue
+        pil_img = PILImage.open(image_path)
+        width, height = pil_img.size
+        scale = min(max_image_size / width, max_image_size / height, 1.0)
+        new_width = int(width * scale)
+        new_height = int(height * scale)
+        resized_path = f'tmp_resized_{row}.jpeg'
+        pil_img.resize((new_width, new_height), PILImage.Resampling.LANCZOS).save(resized_path)
+        temp_images.append(resized_path)
+        img = XLImage(resized_path)
+        img.anchor = f'{img_col}{row}'
+        ws.add_image(img)
+        current_height = ws.row_dimensions[row].height
+        proposed_height = new_height * 0.75
+        ws.row_dimensions[row].height = max(current_height, proposed_height)
+    wb.save(output_path)
+    print(f'Saved Excel with images to: {output_path}')
+    for tmp in temp_images:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
+
 if __name__ == '__main__':
     # check_matching()
     # check_difference()
-    run('145.csv', '145.csv')
-    # show_output()
+    run('001.csv', '001.csv')
+    # show_output('001')
+    # show_manual_output('144')
