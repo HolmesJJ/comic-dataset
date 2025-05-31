@@ -422,7 +422,8 @@ def run(anime):
         print(prompt_content)
         try:
             response = get_response(GEMINI_MODEL, GEMINI_KEY, prompt_content, base64_images, GEMINI_URL)
-        except (Exception,):
+        except Exception as e:
+            print(e)
             response = get_response(GPT_O3_MODEL, GPT_KEY, prompt_content, base64_images)
         print('Response:', response)
         # display_panels(comic_block_ids, objects, dialogues)
