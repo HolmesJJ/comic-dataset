@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 COMIC_DIR = os.getenv('COMIC_DIR')
-MODEL = os.getenv('GPT_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
+MODEL = os.getenv('GPT_4O_MODEL')  # GPT_4O_MODEL, GPT_O3_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
 MODEL_KEY = os.getenv('GPT_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
 MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT_PATH = os.getenv('PROMPT1_PATH')
@@ -137,9 +137,7 @@ def run():
                 base64_image = image_to_base64(image_path)
                 prompt_content = read_prompt(PROMPT_PATH)
                 response = get_response(prompt_content, [base64_image])
-                # reasoning, response = get_response(prompt_content, [base64_image], True)
-                # print("Reasoning:", reasoning)
-                print("Response:", response)
+                print('Response:', response)
                 response_json = extract_json(response)
                 print('JSON response:', response_json)
                 draw_bounding_boxes(image_path, response_json)

@@ -28,12 +28,15 @@ COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC, '1')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
-MODEL = os.getenv('GEMINI_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
-MODEL_KEY = os.getenv('GEMINI_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
-MODEL_URL = os.getenv('GEMINI_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
+GPT_O3_MODEL = os.getenv('GPT_O3_MODEL')
+GPT_4O_MODEL = os.getenv('GPT_4O_MODEL')
+GPT_KEY = os.getenv('GPT_KEY')
+GEMINI_MODEL = os.getenv('GEMINI_MODEL')
+GEMINI_KEY = os.getenv('GEMINI_KEY')
+GEMINI_URL = os.getenv('GEMINI_URL')
 PROMPT3_PATH = os.getenv('PROMPT3_PATH')
 PROMPT5_PATH = os.getenv('PROMPT5_PATH')
-OUTPUT_DIR = os.path.join(os.getenv('OUTPUT_DIR'), 'novel', 'short prompt', COMIC, '1')
+OUTPUT_DIR = os.path.join(os.getenv('NOVEL_DIR'), COMIC, '1')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
 FONT_PROP = FontProperties(fname=FONT_PATH)
@@ -75,9 +78,12 @@ async def translate_text(text):
     return result.text
 
 
-def get_response(prompt_content, base64_images, stream=False):
-    # client = OpenAI(api_key=MODEL_KEY)
-    client = OpenAI(base_url=MODEL_URL, api_key=MODEL_KEY)
+def get_response(model, model_key, prompt_content, base64_images, model_url=None):
+    print(model)
+    if model == GPT_4O_MODEL or model == GPT_O3_MODEL:
+        client = OpenAI(api_key=model_key)
+    else:
+        client = OpenAI(base_url=model_url, api_key=model_key)
     content = [
         {
             'type': 'text',
@@ -91,46 +97,41 @@ def get_response(prompt_content, base64_images, stream=False):
                 'url': f'data:image/jpeg;base64,{base64_image}'
             }
         })
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {
-                'role': 'user',
-                'content': content
-            }
-        ],
-        reasoning_effort='high',  # o3, gemini
-        # extra_body={
-        #     'thinking': {'type': 'enabled', 'budget_tokens': 12800}  # claude
-        # },
-        # extra_body={
-        #     'enable_thinking': True  # qwen
-        # },
-        stream=stream,  # qwen
-        temperature=0  # gpt-4o, qwen, gemini
-    )
-    if stream:
-        reasoning_content = ''
-        answer_content = ''
-        is_answering = False
-        print('\n' + '=' * 20 + 'Reasoning' + '=' * 20 + '\n')
-        for chunk in response:
-            if not chunk.choices:
-                continue
-            delta = chunk.choices[0].delta
-            if hasattr(delta, 'reasoning_content') and delta.reasoning_content is not None:
-                if not is_answering:
-                    print(delta.reasoning_content, end='', flush=True)
-                reasoning_content += delta.reasoning_content
-            if hasattr(delta, 'content') and delta.content:
-                if not is_answering:
-                    print('\n' + '=' * 20 + 'Response' + '=' * 20 + '\n')
-                    is_answering = True
-                print(delta.content, end="", flush=True)
-                answer_content += delta.content
-        return reasoning_content, answer_content
+    if model == GPT_O3_MODEL:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    'role': 'user',
+                    'content': content
+                }
+            ],
+            reasoning_effort='high'
+        )
+    elif model == GPT_4O_MODEL:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    'role': 'user',
+                    'content': content
+                }
+            ],
+            temperature=0
+        )
     else:
-        return response.choices[0].message.content
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {
+                    'role': 'user',
+                    'content': content
+                }
+            ],
+            reasoning_effort='high',
+            temperature=0
+        )
+    return response.choices[0].message.content
 
 
 def check_matching():
@@ -363,8 +364,8 @@ def display_panels(comic_block_ids, objects, dialogues):
     plt.show()
 
 
-def run(start_file=None, end_file=None):
-    output_path = os.path.join(OUTPUT_DIR, 'novel_gemini-2.5.pkl')
+def run(anime):
+    output_path = os.path.join(OUTPUT_DIR, f'{anime}.pkl')
     if os.path.exists(output_path):
         df = pd.read_pickle(output_path)
         all_comic_blocks = df['comic_block_id'].tolist()
@@ -372,75 +373,67 @@ def run(start_file=None, end_file=None):
     else:
         df = pd.DataFrame(columns=['comic_block_id', 'response'])
         all_comic_blocks, responses = [], []
-    comic_anime_files = sorted([f for f in os.listdir(COMIC_ANIME_DIR) if f.endswith('.csv')])
-    start_index = 0
-    end_index = len(comic_anime_files)
-    if start_file and start_file in comic_anime_files:
-        start_index = comic_anime_files.index(start_file)
-    if end_file and end_file in comic_anime_files:
-        end_index = comic_anime_files.index(end_file) + 1
-    selected_files = comic_anime_files[start_index:end_index]
-    print(selected_files)
-    for comic_anime_file in selected_files:
-        comic_anime_path = os.path.join(COMIC_ANIME_DIR, comic_anime_file)
-        comic_anime_df = pd.read_csv(comic_anime_path)
-        for index, row in comic_anime_df.iterrows():
-            current_comic_block_id = row['Comic Block ID']
-            if pd.isna(current_comic_block_id):
-                continue
-            if current_comic_block_id in all_comic_blocks:
-                continue
-            all_comic_blocks.append(current_comic_block_id)
-            start_idx = max(0, len(all_comic_blocks) - 6)
-            pre_comic_block_ids = all_comic_blocks[start_idx:-1]
-            comic_block_ids = pre_comic_block_ids
-            comic_block_ids.append(current_comic_block_id)
-            # print(comic_block_ids)
-            objects = get_objects(comic_block_ids)
-            # print(objects)
-            dialogues = get_dialogues(comic_block_ids)
-            # print(dialogues)
-            base64_images = get_base64_images(comic_block_ids)
-            num_panels = len(comic_block_ids)
-            object_content = ''
-            for idx, object_df in enumerate(objects):
-                panel_title = (
-                    f'CSV #1 Panel {idx + 1}'
-                    if idx < num_panels - 1
-                    else 'CSV #1 Last Panel'
-                )
-                object_content += f'# {panel_title}\n{object_df.to_csv(index=False)}\n'
-            object_content = f'```csv\n{object_content.rstrip()}\n```'
-            dialogue_content = ''
-            for idx, dialogue_df in enumerate(dialogues):
-                panel_title = (
-                    f'CSV #2 Panel {idx + 1}'
-                    if idx < num_panels - 1
-                    else 'CSV #2 Last Panel'
-                )
-                dialogue_content += f'# {panel_title}\n{dialogue_df.to_csv(index=False)}\n'
-            dialogue_content = f'```csv\n{dialogue_content.rstrip()}\n```'
-            response_content = ''
-            last_responses = responses[-(num_panels - 1):] if num_panels - 1 > 0 else []
-            for idx, resp in enumerate(last_responses):
-                panel_title = f'Narrative Panel {idx + 1}'
-                response_content += f'# {panel_title}\n{resp}\n'
-            response_content = f'```text\n{response_content.rstrip()}\n```'
-            prompt_content = read_prompt(PROMPT3_PATH).format(COMIC, num_panels - 1, response_content)
-            print(prompt_content)
-            response = get_response(prompt_content, base64_images)
-            # reasoning, response = get_response(prompt_content, base64_images, True)
-            # print("Reasoning:", reasoning)
-            print("Response:", response)
-            # display_panels(comic_block_ids, objects, dialogues)
-            df.loc[len(df)] = [current_comic_block_id, response]
-            df.to_pickle(output_path)
-            responses.append(response)
-            print(f'[Saved] {current_comic_block_id} -> pickle ({len(df)} total)')
+    comic_anime_path = os.path.join(COMIC_ANIME_DIR, f'{anime}.csv')
+    comic_anime_df = pd.read_csv(comic_anime_path)
+    for index, row in comic_anime_df.iterrows():
+        current_comic_block_id = row['Comic Block ID']
+        if pd.isna(current_comic_block_id):
+            continue
+        if current_comic_block_id in all_comic_blocks:
+            continue
+        all_comic_blocks.append(current_comic_block_id)
+        start_idx = max(0, len(all_comic_blocks) - 6)
+        pre_comic_block_ids = all_comic_blocks[start_idx:-1]
+        comic_block_ids = pre_comic_block_ids
+        comic_block_ids.append(current_comic_block_id)
+        # print(comic_block_ids)
+        objects = get_objects(comic_block_ids)
+        # print(objects)
+        dialogues = get_dialogues(comic_block_ids)
+        # print(dialogues)
+        # base64_images = get_base64_images(comic_block_ids)
+        base64_images = get_base64_images([current_comic_block_id])
+        num_panels = len(comic_block_ids)
+        object_content = ''
+        for idx, object_df in enumerate(objects):
+            panel_title = (
+                f'CSV #1 Panel {idx + 1}'
+                if idx < num_panels - 1
+                else 'CSV #1 Last Panel'
+            )
+            object_content += f'# {panel_title}\n{object_df.to_csv(index=False)}\n'
+        object_content = f'```csv\n{object_content.rstrip()}\n```'
+        dialogue_content = ''
+        for idx, dialogue_df in enumerate(dialogues):
+            panel_title = (
+                f'CSV #2 Panel {idx + 1}'
+                if idx < num_panels - 1
+                else 'CSV #2 Last Panel'
+            )
+            dialogue_content += f'# {panel_title}\n{dialogue_df.to_csv(index=False)}\n'
+        dialogue_content = f'```csv\n{dialogue_content.rstrip()}\n```'
+        response_content = ''
+        last_responses = responses[-(num_panels - 1):] if num_panels - 1 > 0 else []
+        for idx, resp in enumerate(last_responses):
+            panel_title = f'Narrative Panel {idx + 1}'
+            response_content += f'# {panel_title}\n{resp}\n'
+        response_content = f'```text\n{response_content.rstrip()}\n```'
+        prompt_content = read_prompt(PROMPT3_PATH).format(COMIC, num_panels - 1, response_content)
+        print(prompt_content)
+        try:
+            response = get_response(GEMINI_MODEL, GEMINI_KEY, prompt_content, base64_images, GEMINI_URL)
+        except (Exception,):
+            response = get_response(GPT_O3_MODEL, GPT_KEY, prompt_content, base64_images)
+        print('Response:', response)
+        # display_panels(comic_block_ids, objects, dialogues)
+        df.loc[len(df)] = [current_comic_block_id, response]
+        df.to_pickle(output_path)
+        responses.append(response)
+        print(f'[Saved] {current_comic_block_id} -> pickle ({len(df)} total)')
 
 
-def show_output():
-    output_path = os.path.join(OUTPUT_DIR, 'novel_gemini-2.5.pkl')
+def show_output(anime):
+    output_path = os.path.join(OUTPUT_DIR, f'{anime}.pkl')
     label_summary_path = os.path.join(OBJECT_DIR, 'label_summary.csv')
     label_summary_df = pd.read_csv(label_summary_path)
     label_names = label_summary_df['label_name'].tolist()
@@ -461,7 +454,7 @@ def show_output():
         comic_block_id = row['comic_block_id']
         response = row['response'] if row['response'] else ''
         prompt_content = read_prompt(PROMPT5_PATH).format(COMIC, label_names, response)
-        response_translated = get_response(prompt_content, [])
+        response_translated = get_response(GPT_4O_MODEL, GPT_KEY, prompt_content, [])
         if not response_translated:
             response_translated = ''
         print(response_translated)
@@ -500,7 +493,7 @@ def show_output():
         text_height = line_count * line_height
         row_height = max(image_height, text_height)
         ws.row_dimensions[idx + 2].height = row_height
-    output_excel = os.path.splitext(output_path)[0] + '.xlsx'
+    output_excel = os.path.join(OUTPUT_DIR, f'{anime}.xlsx')
     wb.save(output_excel)
     print(f'Saved Excel to: {output_excel}')
     for path in temp_images:
@@ -511,5 +504,6 @@ def show_output():
 if __name__ == '__main__':
     # check_matching()
     # check_difference()
-    run('145.csv', '145.csv')
-    # show_output()
+    for i in range(8, 142):
+        run(f'{i:03d}')
+        show_output(f'{i:03d}')

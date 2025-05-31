@@ -17,7 +17,7 @@ load_dotenv()
 COMIC = os.getenv('COMIC')
 COMIC_DIR = os.getenv('COMIC_DIR')
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
-MODEL = os.getenv('GPT_MODEL')  # GPT_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
+MODEL = os.getenv('GPT_4O_MODEL')  # GPT_4O_MODEL, GPT_O3_MODEL, QWEN_MODEL, CLAUDE_MODEL, GEMINI_MODEL
 MODEL_KEY = os.getenv('GPT_KEY')  # GPT_KEY, QWEN_KEY, CLAUDE_KEY, GEMINI_KEY
 MODEL_URL = os.getenv('QWEN_URL')  # QWEN_URL, CLAUDE_URL, GEMINI_URL
 PROMPT_PATH = os.getenv('PROMPT4_PATH')
@@ -172,9 +172,7 @@ def run(comic):
                     # cv2.destroyAllWindows()
                     prompt_content = read_prompt(PROMPT_PATH)
                     response = get_response(prompt_content, [base64_image])
-                    # reasoning, response = get_response(prompt_content, [base64_image], True)
-                    # print("Reasoning:", reasoning)
-                    print("Response:", response)
+                    print('Response:', response)
                     dialogues = response.strip().split('\n')
                     for dialogue in dialogues:
                         content = dialogue.strip().split(',')
