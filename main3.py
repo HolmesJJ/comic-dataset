@@ -457,11 +457,7 @@ def run(anime):
                     continue
                 else:
                     break
-            if response is None:
-                print('Unknown error')
-                save_gemini_invalid_key(key)
-                continue
-            else:
+            if response is not None:
                 break
         if response is None:
             response = get_response(GPT_O3_MODEL, GPT_KEY, prompt_content, base64_images)
