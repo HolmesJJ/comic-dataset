@@ -448,6 +448,7 @@ def run(anime):
             if key in gemini_invalid_keys:
                 continue
             print('Gemini Key:', key)
+            is_error_429 = False
             while True:
                 try:
                     response = get_response(GEMINI_MODEL, key, prompt_content, base64_images, GEMINI_URL)
@@ -457,6 +458,7 @@ def run(anime):
                     if 'Error code: 429' in error_message:
                         print('Error 429:', e)
                         save_gemini_invalid_key(key)
+                        is_error_429 = True
                         break
                     elif 'Error code: 503' in error_message:
                         print('Error 503:', e)
@@ -465,7 +467,7 @@ def run(anime):
                     else:
                         print('Error:', e)
                         break
-            if response is not None:
+            if not is_error_429:
                 break
         if response is None:
             response = get_response(GPT_O3_MODEL, GPT_KEY, prompt_content, base64_images)
@@ -550,7 +552,7 @@ if __name__ == '__main__':
     # print(load_gemini_keys())
     # check_matching()
     # check_difference()
-    for i in range(21, 142):
+    for i in range(22, 142):
         print(f'{i:03d}')
         run(f'{i:03d}')
         show_output(f'{i:03d}')
