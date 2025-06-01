@@ -1,6 +1,7 @@
 import io
 import os
 import cv2
+import time
 import base64
 import random
 import colorsys
@@ -447,17 +448,25 @@ def run(anime):
             if key in gemini_invalid_keys:
                 continue
             print('Gemini Key:', key)
-            try:
-                response = get_response(GEMINI_MODEL, key, prompt_content, base64_images, GEMINI_URL)
-            except Exception as e:
-                print(e)
-                error_message = str(e)
-                if 'Error code: 429' in error_message:
-                    save_gemini_invalid_key(key)
-                    continue
-                else:
+            while True:
+                try:
+                    response = get_response(GEMINI_MODEL, key, prompt_content, base64_images, GEMINI_URL)
                     break
-            break
+                except Exception as e:
+                    error_message = str(e)
+                    if 'Error code: 429' in error_message:
+                        print('Error 429:', e)
+                        save_gemini_invalid_key(key)
+                        break
+                    elif 'Error code: 503' in error_message:
+                        print('Error 503:', e)
+                        time.sleep(30)
+                        continue
+                    else:
+                        print('Error:', e)
+                        break
+            if response is not None:
+                break
         if response is None:
             response = get_response(GPT_O3_MODEL, GPT_KEY, prompt_content, base64_images)
         print('Response:', response)
@@ -571,7 +580,7 @@ if __name__ == '__main__':
     # print(load_gemini_keys())
     # check_matching()
     # check_difference()
-    for i in range(19, 142):
+    for i in range(22, 142):
         print(f'{i:03d}')
         run(f'{i:03d}')
         show_output(f'{i:03d}')
