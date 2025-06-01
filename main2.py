@@ -34,10 +34,12 @@ GPT_4O_MODEL = os.getenv('GPT_4O_MODEL')
 GPT_KEY = os.getenv('GPT_KEY')
 GEMINI_MODEL = os.getenv('GEMINI_MODEL')
 # GEMINI_KEY = os.getenv('GEMINI_KEY')
-GEMINI_KEYS_PATH = os.getenv('GEMINI_KEYS_PATH')
+GEMINI_KEYS_PATH = os.getenv('GEMINI_KEYS1_PATH')
+GEMINI_INVALID_KEYS_PATH = os.getenv('GEMINI_INVALID_KEYS_PATH')
 GEMINI_URL = os.getenv('GEMINI_URL')
 PROMPT2_PATH = os.getenv('PROMPT2_PATH')
-OUTPUT_DIR = os.path.join(os.getenv('EXTENSION_DIR'), COMIC, '1')
+EXTENSION_DIR = os.getenv('EXTENSION_DIR')
+OUTPUT_DIR = os.path.join(EXTENSION_DIR, COMIC, '1')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
 FONT_PROP = FontProperties(fname=FONT_PATH)
@@ -79,9 +81,21 @@ async def translate_text(text):
     return result.text
 
 
-def get_gemini_keys():
+def load_gemini_keys():
     with open(GEMINI_KEYS_PATH, 'r', encoding='utf-8') as f:
         return [line.strip() for line in f if line.strip()]
+
+
+def load_gemini_invalid_keys():
+    if os.path.exists(GEMINI_INVALID_KEYS_PATH):
+        with open(GEMINI_INVALID_KEYS_PATH, 'r', encoding='utf-8') as f:
+            return [line.strip() for line in f if line.strip()]
+    return []
+
+
+def save_gemini_invalid_key(key):
+    with open(GEMINI_INVALID_KEYS_PATH, 'a') as f:
+        f.write(f'{key}\n')
 
 
 def get_response(model, model_key, prompt_content, base64_images, model_url=None):
@@ -426,9 +440,12 @@ def run(anime):
         response_content = f'```text\n{response_content.rstrip()}\n```'
         prompt_content = read_prompt(PROMPT2_PATH).format(COMIC, num_panels - 1, response_content)
         print(prompt_content)
-        gemini_keys = get_gemini_keys()
+        gemini_keys = load_gemini_keys()
+        gemini_invalid_keys = load_gemini_invalid_keys()
         response = None
         for key in gemini_keys:
+            if key in gemini_invalid_keys:
+                continue
             print('Gemini Key:', key)
             try:
                 response = get_response(GEMINI_MODEL, key, prompt_content, base64_images, GEMINI_URL)
@@ -488,7 +505,7 @@ def show_output(anime):
             scale = min(max_image_size / width, max_image_size / height, 1.0)
             new_width = int(width * scale)
             new_height = int(height * scale)
-            resized_path = f'tmp_resized_{idx}.png'
+            resized_path = os.path.join(EXTENSION_DIR, f'tmp_resized_{idx}.png')
             pil_img.resize((new_width, new_height), PILImage.Resampling.LANCZOS).save(resized_path)
             image = XLImage(resized_path)
             temp_images.append(resized_path)
@@ -532,7 +549,7 @@ def show_manual_output(anime):
         scale = min(max_image_size / width, max_image_size / height, 1.0)
         new_width = int(width * scale)
         new_height = int(height * scale)
-        resized_path = f'tmp_resized_{row}.jpeg'
+        resized_path = os.path.join(EXTENSION_DIR, f'tmp_resized_{row}.jpeg')
         pil_img.resize((new_width, new_height), PILImage.Resampling.LANCZOS).save(resized_path)
         temp_images.append(resized_path)
         img = XLImage(resized_path)
@@ -549,10 +566,10 @@ def show_manual_output(anime):
 
 
 if __name__ == '__main__':
-    # print(get_gemini_keys())
+    # print(load_gemini_keys())
     # check_matching()
     # check_difference()
-    for i in range(11, 142):
+    for i in range(15, 142):
         print(f'{i:03d}')
         run(f'{i:03d}')
         show_output(f'{i:03d}')

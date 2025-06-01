@@ -17,4 +17,6 @@ dialogue/
 object/
 novel/
 extension/
-gemini_keys.txt
+gemini_keys1.txt
+gemini_keys2.txt
+gemini_invalid_keys.txt
