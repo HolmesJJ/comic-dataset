@@ -553,6 +553,7 @@ if __name__ == '__main__':
     # check_matching()
     # check_difference()
     for i in range(11, 142):
+        print(f'{i:03d}')
         run(f'{i:03d}')
         show_output(f'{i:03d}')
     # show_manual_output('144')

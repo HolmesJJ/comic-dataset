@@ -522,6 +522,7 @@ if __name__ == '__main__':
     # print(get_gemini_keys())
     # check_matching()
     # check_difference()
-    for i in range(8, 142):
+    for i in range(9, 142):
+        print(f'{i:03d}')
         run(f'{i:03d}')
         show_output(f'{i:03d}')
