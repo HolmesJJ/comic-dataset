@@ -33,7 +33,8 @@ GPT_O3_MODEL = os.getenv('GPT_O3_MODEL')
 GPT_4O_MODEL = os.getenv('GPT_4O_MODEL')
 GPT_KEY = os.getenv('GPT_KEY')
 GEMINI_MODEL = os.getenv('GEMINI_MODEL')
-GEMINI_KEY = os.getenv('GEMINI_KEY')
+# GEMINI_KEY = os.getenv('GEMINI_KEY')
+GEMINI_KEYS_PATH = os.getenv('GEMINI_KEYS_PATH')
 GEMINI_URL = os.getenv('GEMINI_URL')
 PROMPT2_PATH = os.getenv('PROMPT2_PATH')
 OUTPUT_DIR = os.path.join(os.getenv('EXTENSION_DIR'), COMIC, '1')
@@ -49,8 +50,8 @@ def random_color():
 
 def random_colors(n):
     colors = []
-    for i in range(n):
-        hue = i / n
+    for idx in range(n):
+        hue = idx / n
         r, g, b = colorsys.hsv_to_rgb(hue, 0.7, 1.0)
         colors.append((int(r * 255), int(g * 255), int(b * 255)))
     return colors
@@ -78,8 +79,13 @@ async def translate_text(text):
     return result.text
 
 
+def get_gemini_keys():
+    with open(GEMINI_KEYS_PATH, 'r', encoding='utf-8') as f:
+        return [line.strip() for line in f if line.strip()]
+
+
 def get_response(model, model_key, prompt_content, base64_images, model_url=None):
-    print(model)
+    print('Model:', model)
     if model == GPT_4O_MODEL or model == GPT_O3_MODEL:
         client = OpenAI(api_key=model_key)
     else:
@@ -309,7 +315,7 @@ def display_panels(comic_block_ids, objects, dialogues):
     fig.subplots_adjust(bottom=0.2)
     if num_panels == 1:
         axes = axes.reshape(2, 1)
-    for i, (block_id, obj_df, dlg_df) in enumerate(zip(comic_block_ids, objects, dialogues)):
+    for idx, (block_id, obj_df, dlg_df) in enumerate(zip(comic_block_ids, objects, dialogues)):
         parts = block_id.split('_')
         comic_id = parts[0]
         page_folder = f'page_{parts[2]}'
@@ -329,12 +335,12 @@ def display_panels(comic_block_ids, objects, dialogues):
         scale = max_width / img.shape[1]
         img = cv2.resize(img, (int(img.shape[1] * scale), int(img.shape[0] * scale)))
         img_height, img_width = img.shape[:2]
-        ax_img = axes[0, i]
-        ax_text = axes[1, i]
+        ax_img = axes[0, idx]
+        ax_text = axes[1, idx]
         ax_img.imshow(img)
         ax_img.axis('off')
-        panel_label = f'Panel {i + 1}' if i < num_panels - 1 else 'Last Panel'
-        ax_img.set_title(f'{panel_label}: {comic_block_ids[i]}')
+        panel_label = f'Panel {idx + 1}' if idx < num_panels - 1 else 'Last Panel'
+        ax_img.set_title(f'{panel_label}: {comic_block_ids[idx]}')
         label_list = list(set(obj_df['object'].values))
         color_map = {label: color for label, color in zip(label_list, random_colors(len(label_list)))}
         for _, row in obj_df.iterrows():
@@ -391,7 +397,8 @@ def run(anime):
         # print(objects)
         dialogues = get_dialogues(comic_block_ids)
         # print(dialogues)
-        base64_images = get_base64_images(comic_block_ids)
+        # base64_images = get_base64_images(comic_block_ids)
+        base64_images = get_base64_images([current_comic_block_id])
         num_panels = len(comic_block_ids)
         object_content = ''
         for idx, object_df in enumerate(objects):
@@ -419,10 +426,20 @@ def run(anime):
         response_content = f'```text\n{response_content.rstrip()}\n```'
         prompt_content = read_prompt(PROMPT2_PATH).format(COMIC, num_panels - 1, response_content)
         print(prompt_content)
-        try:
-            response = get_response(GEMINI_MODEL, GEMINI_KEY, prompt_content, base64_images, GEMINI_URL)
-        except Exception as e:
-            print(e)
+        gemini_keys = get_gemini_keys()
+        response = None
+        for key in gemini_keys:
+            print('Gemini Key:', key)
+            try:
+                response = get_response(GEMINI_MODEL, key, prompt_content, base64_images, GEMINI_URL)
+            except Exception as e:
+                print(e)
+                error_message = str(e)
+                if 'Error code: 429' not in error_message:
+                    break
+            if response is not None:
+                break
+        if response is None:
             response = get_response(GPT_O3_MODEL, GPT_KEY, prompt_content, base64_images)
         print('Response:', response)
         # display_panels(comic_block_ids, objects, dialogues)
@@ -532,6 +549,7 @@ def show_manual_output(anime):
 
 
 if __name__ == '__main__':
+    # print(get_gemini_keys())
     # check_matching()
     # check_difference()
     for i in range(11, 142):
