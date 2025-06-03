@@ -79,8 +79,8 @@ def create_voc_xml(image_name, image_width, image_height, objects):
     annotation = ET.Element('annotation')
     folder = ET.SubElement(annotation, 'folder')
     folder.text = ''
-    filename = ET.SubElement(annotation, 'filename')
-    filename.text = image_name
+    file_name = ET.SubElement(annotation, 'filename')
+    file_name.text = image_name
     path = ET.SubElement(annotation, 'path')
     path.text = ''
     source = ET.SubElement(annotation, 'source')
@@ -124,10 +124,10 @@ def save_pretty_xml(tree, output_path):
 
 def csv_to_voc(comic):
     comic_dir = os.path.join(OBJECT_DIR, comic)
-    for filename in os.listdir(comic_dir):
-        if filename.endswith('.csv'):
-            csv_file = os.path.join(comic_dir, filename)
-            object_dir = os.path.join(comic_dir, os.path.splitext(filename)[0])
+    for file_name in os.listdir(comic_dir):
+        if file_name.endswith('.csv'):
+            csv_file = os.path.join(comic_dir, file_name)
+            object_dir = os.path.join(comic_dir, os.path.splitext(file_name)[0])
             df = pd.read_csv(csv_file)
             grouped = df.groupby('image_name')
             if not os.path.exists(object_dir):
