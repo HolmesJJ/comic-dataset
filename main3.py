@@ -29,6 +29,7 @@ COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC, '1')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
+NOVEL_DIR = os.path.join(os.getenv('NOVEL_DIR'), COMIC, '1')
 GPT_O3_MODEL = os.getenv('GPT_O3_MODEL')
 GPT_4O_MODEL = os.getenv('GPT_4O_MODEL')
 GPT_KEY = os.getenv('GPT_KEY')
@@ -39,8 +40,6 @@ GEMINI_INVALID_KEYS_PATH = os.getenv('GEMINI_INVALID_KEYS_PATH')
 GEMINI_URL = os.getenv('GEMINI_URL')
 PROMPT3_PATH = os.getenv('PROMPT3_PATH')
 PROMPT5_PATH = os.getenv('PROMPT5_PATH')
-NOVEL_DIR = os.getenv('NOVEL_DIR')
-OUTPUT_DIR = os.path.join(NOVEL_DIR, COMIC, '1')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
 FONT_PROP = FontProperties(fname=FONT_PATH)
@@ -386,9 +385,9 @@ def display_panels(comic_block_ids, objects, dialogues):
 
 
 def run(anime):
-    output_path = os.path.join(OUTPUT_DIR, f'{anime}.pkl')
-    if os.path.exists(output_path):
-        df = pd.read_pickle(output_path)
+    novel_path = os.path.join(NOVEL_DIR, f'{anime}.pkl')
+    if os.path.exists(novel_path):
+        df = pd.read_pickle(novel_path)
         all_comic_blocks = df['comic_block_id'].tolist()
         responses = df['response'].tolist()
     else:
@@ -470,21 +469,21 @@ def run(anime):
             if not is_error_429:
                 break
         if response is None:
-            response = get_response(GPT_O3_MODEL, GPT_KEY, prompt_content, base64_images)
+            response = get_response(GPT_4O_MODEL, GPT_KEY, prompt_content, base64_images)
         print('Response:', response)
         # display_panels(comic_block_ids, objects, dialogues)
         df.loc[len(df)] = [current_comic_block_id, response]
-        df.to_pickle(output_path)
+        df.to_pickle(novel_path)
         responses.append(response)
         print(f'[Saved] {current_comic_block_id} -> pickle ({len(df)} total)')
 
 
 def show_output(anime):
-    output_path = os.path.join(OUTPUT_DIR, f'{anime}.pkl')
+    novel_path = os.path.join(NOVEL_DIR, f'{anime}.pkl')
+    df = pd.read_pickle(novel_path)
     label_summary_path = os.path.join(OBJECT_DIR, 'label_summary.csv')
     label_summary_df = pd.read_csv(label_summary_path)
     label_names = label_summary_df['label_name'].tolist()
-    df = pd.read_pickle(output_path)
     max_image_size = 256
     char_per_line = 80
     line_height = 17
@@ -540,9 +539,9 @@ def show_output(anime):
         text_height = line_count * line_height
         row_height = max(image_height, text_height)
         ws.row_dimensions[idx + 2].height = row_height
-    output_excel = os.path.join(OUTPUT_DIR, f'{anime}.xlsx')
-    wb.save(output_excel)
-    print(f'Saved Excel to: {output_excel}')
+    novel_excel = os.path.join(NOVEL_DIR, f'{anime}.xlsx')
+    wb.save(novel_excel)
+    print(f'Saved Excel to: {novel_excel}')
     for path in temp_images:
         if os.path.exists(path):
             os.remove(path)
@@ -552,7 +551,7 @@ if __name__ == '__main__':
     # print(load_gemini_keys())
     # check_matching()
     # check_difference()
-    for i in range(22, 142):
+    for i in range(106, 142):
         print(f'{i:03d}')
         run(f'{i:03d}')
         show_output(f'{i:03d}')

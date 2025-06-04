@@ -30,6 +30,7 @@ COMIC_ANIME_DIR = os.path.join(os.getenv('COMIC_ANIME_DIR'), COMIC, '1')
 COMIC_DIR = os.path.join(os.getenv('COMIC_DIR'), COMIC)
 DIALOGUE_DIR = os.path.join(os.getenv('DIALOGUE_DIR'), COMIC)
 OBJECT_DIR = os.path.join(os.getenv('OBJECT_DIR'), COMIC)
+EXTENSION_DIR = os.path.join(os.getenv('EXTENSION_DIR'), COMIC, '1')
 GPT_O3_MODEL = os.getenv('GPT_O3_MODEL')
 GPT_4O_MODEL = os.getenv('GPT_4O_MODEL')
 GPT_KEY = os.getenv('GPT_KEY')
@@ -39,8 +40,6 @@ GEMINI_KEYS_PATH = os.getenv('GEMINI_KEYS1_PATH')
 GEMINI_INVALID_KEYS_PATH = os.getenv('GEMINI_INVALID_KEYS_PATH')
 GEMINI_URL = os.getenv('GEMINI_URL')
 PROMPT2_PATH = os.getenv('PROMPT2_PATH')
-EXTENSION_DIR = os.getenv('EXTENSION_DIR')
-OUTPUT_DIR = os.path.join(EXTENSION_DIR, COMIC, '1')
 
 FONT_PATH = 'C:\\Windows\\Fonts\\SimHei.ttf'
 FONT_PROP = FontProperties(fname=FONT_PATH)
@@ -386,9 +385,9 @@ def display_panels(comic_block_ids, objects, dialogues):
 
 
 def run(anime):
-    output_path = os.path.join(OUTPUT_DIR, f'{anime}.pkl')
-    if os.path.exists(output_path):
-        df = pd.read_pickle(output_path)
+    extension_path = os.path.join(EXTENSION_DIR, f'{anime}.pkl')
+    if os.path.exists(extension_path):
+        df = pd.read_pickle(extension_path)
         all_comic_blocks = df['comic_block_id'].tolist()
         responses = df['response'].tolist()
     else:
@@ -470,18 +469,18 @@ def run(anime):
             if not is_error_429:
                 break
         if response is None:
-            response = get_response(GPT_O3_MODEL, GPT_KEY, prompt_content, base64_images)
+            response = get_response(GPT_4O_MODEL, GPT_KEY, prompt_content, base64_images)
         print('Response:', response)
         # display_panels(comic_block_ids, objects, dialogues)
         df.loc[len(df)] = [current_comic_block_id, response]
-        df.to_pickle(output_path)
+        df.to_pickle(extension_path)
         responses.append(response)
         print(f'[Saved] {current_comic_block_id} -> pickle ({len(df)} total)')
 
 
 def show_output(anime):
-    output_path = os.path.join(OUTPUT_DIR, f'{anime}.pkl')
-    df = pd.read_pickle(output_path)
+    extension_path = os.path.join(EXTENSION_DIR, f'{anime}.pkl')
+    df = pd.read_pickle(extension_path)
     max_image_size = 256
     char_per_line = 80
     line_height = 18
@@ -493,7 +492,6 @@ def show_output(anime):
     ws.column_dimensions['A'].width = 20
     ws.column_dimensions['B'].width = max_image_size // 7
     ws.column_dimensions['C'].width = 80
-    ws.column_dimensions['D'].width = 80
     for idx, row in df.iterrows():
         comic_block_id = row['comic_block_id']
         response = row['response'] if row['response'] else ''
@@ -525,16 +523,16 @@ def show_output(anime):
             image.anchor = f'B{idx + 2}'
             ws.add_image(image)
             image_height = new_height * 0.75
-        for col_letter in ['C', 'D']:
+        for col_letter in ['C']:
             cell = ws[f'{col_letter}{idx + 2}']
             cell.alignment = Alignment(wrap_text=True, vertical='top')
         line_count = len(response) // char_per_line + 1
         text_height = line_count * line_height
         row_height = max(image_height, text_height)
         ws.row_dimensions[idx + 2].height = row_height
-    output_excel = os.path.splitext(output_path)[0] + '.xlsx'
-    wb.save(output_excel)
-    print(f'Saved Excel to: {output_excel}')
+    extension_excel = os.path.splitext(extension_path)[0] + '.xlsx'
+    wb.save(extension_excel)
+    print(f'Saved Excel to: {extension_excel}')
     for path in temp_images:
         if os.path.exists(path):
             os.remove(path)
@@ -543,8 +541,8 @@ def show_output(anime):
 def show_manual_output(anime):
     max_image_size = 256
     temp_images = []
-    output_path = os.path.join(OUTPUT_DIR, f'{anime}_updated.xlsx')
-    wb = load_workbook(output_path)
+    extension_path = os.path.join(EXTENSION_DIR, f'{anime}_updated.xlsx')
+    wb = load_workbook(extension_path)
     ws = wb.active
     id_col = 'A'
     img_col = 'D'
@@ -554,7 +552,7 @@ def show_manual_output(anime):
         img_id = ws[f'{id_col}{row}'].value
         if not img_id:
             continue
-        image_path = os.path.join(OUTPUT_DIR, anime, f'{img_id}.jpeg')
+        image_path = os.path.join(EXTENSION_DIR, anime, f'{img_id}.jpeg')
         if not os.path.exists(image_path):
             continue
         pil_img = PILImage.open(image_path)
@@ -571,8 +569,8 @@ def show_manual_output(anime):
         current_height = ws.row_dimensions[row].height
         proposed_height = new_height * 0.75
         ws.row_dimensions[row].height = max(current_height, proposed_height)
-    wb.save(output_path)
-    print(f'Saved Excel with images to: {output_path}')
+    wb.save(extension_path)
+    print(f'Saved Excel with images to: {extension_path}')
     for tmp in temp_images:
         if os.path.exists(tmp):
             os.remove(tmp)
@@ -582,7 +580,7 @@ if __name__ == '__main__':
     # print(load_gemini_keys())
     # check_matching()
     # check_difference()
-    for i in range(22, 142):
+    for i in range(88, 142):
         print(f'{i:03d}')
         run(f'{i:03d}')
         show_output(f'{i:03d}')
