@@ -473,7 +473,7 @@ def run(anime):
         if is_all_invalid:
             raise ValueError('All gemini keys are invalid.')
         if response is None:
-            response = get_response(GPT_4O_MODEL, GPT_KEY, prompt_content, base64_images)
+            response = get_response(GPT_O3_MODEL, GPT_KEY, prompt_content, base64_images)
         print('Response:', response)
         # display_panels(comic_block_ids, objects, dialogues)
         df.loc[len(df)] = [current_comic_block_id, response]
@@ -555,7 +555,7 @@ if __name__ == '__main__':
     # print(load_gemini_keys())
     # check_matching()
     # check_difference()
-    for i in range(139, 142):
+    for i in range(1, 5):
         print(f'{i:03d}')
         run(f'{i:03d}')
         show_output(f'{i:03d}')
