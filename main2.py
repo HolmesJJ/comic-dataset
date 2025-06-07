@@ -443,10 +443,12 @@ def run(anime):
         gemini_keys = load_gemini_keys()
         gemini_invalid_keys = load_gemini_invalid_keys()
         response = None
+        is_all_invalid = True
         for key in gemini_keys:
             if key in gemini_invalid_keys:
                 continue
             print('Gemini Key:', key)
+            is_all_invalid = False
             is_error = False
             while True:
                 try:
@@ -468,6 +470,8 @@ def run(anime):
                         break
             if not is_error:
                 break
+        if is_all_invalid:
+            raise ValueError('All gemini keys are invalid.')
         if response is None:
             response = get_response(GPT_4O_MODEL, GPT_KEY, prompt_content, base64_images)
         print('Response:', response)
