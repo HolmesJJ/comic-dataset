@@ -244,8 +244,10 @@ def get_objects(comic_block_ids):
             raise ValueError('Image path is missing or invalid.')
         object_path = os.path.join(OBJECT_DIR, f'{comic_id}(已检查)', f'{page_folder}.csv')
         if not os.path.exists(object_path):
-            print(object_path)
-            raise ValueError('Object path is missing or invalid.')
+            object_path = os.path.join(OBJECT_DIR, f'{comic_id}', f'{page_folder}.csv.csv')
+            if not os.path.exists(object_path):
+                print(object_path)
+                raise ValueError('Object path is missing or invalid.')
         object_df = pd.read_csv(object_path)
         object_df = object_df[(object_df['image_name'] == os.path.basename(image_path))]
         object_df['object'] = object_df['label_name']
