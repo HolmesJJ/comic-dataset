@@ -1,4 +1,5 @@
 import os
+import glob
 
 from dotenv import load_dotenv
 from PIL import Image as PILImage
@@ -26,7 +27,10 @@ def show_manual_output(anime):
         img_id = ws[f'{id_col}{row}'].value
         if not img_id:
             continue
-        image_path = os.path.join(EXTENSION_DIR, anime, f'{img_id}.jpeg')
+        image_files = glob.glob(os.path.join(EXTENSION_DIR, anime, f'{img_id}.*'))
+        image_path = next((f for f in image_files if f.lower().endswith(('.jpeg', '.jpg', '.png'))), None)
+        if image_path is None:
+            continue
         if not os.path.exists(image_path):
             continue
         pil_img = PILImage.open(image_path)
@@ -35,7 +39,10 @@ def show_manual_output(anime):
         new_width = int(width * scale)
         new_height = int(height * scale)
         resized_path = os.path.join(EXTENSION_DIR, f'tmp_resized_{row}.jpeg')
-        pil_img.resize((new_width, new_height), PILImage.Resampling.LANCZOS).save(resized_path)
+        pil_img = pil_img.resize((new_width, new_height), PILImage.Resampling.LANCZOS)
+        if pil_img.mode == 'RGBA':
+            pil_img = pil_img.convert('RGB')
+        pil_img.save(resized_path)
         temp_images.append(resized_path)
         img = XLImage(resized_path)
         img.anchor = f'{img_col}{row}'
