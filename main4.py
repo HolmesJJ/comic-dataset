@@ -57,5 +57,21 @@ def show_manual_output(anime):
             os.remove(tmp)
 
 
+def show_undo(anime):
+    extension_path = os.path.join(EXTENSION_DIR, f'{anime}_updated.xlsx')
+    wb = load_workbook(extension_path)
+    ws = wb.active
+    first_col_values = [cell.value for cell in ws['A'][1:] if cell.value is not None]
+    image_files = []
+    for ext in ('*.jpg', '*.jpeg', '*.png'):
+        image_files.extend(glob.glob(os.path.join(EXTENSION_DIR, anime, ext)))
+    image_names = [os.path.splitext(os.path.basename(f))[0] for f in image_files]
+    undo = [val for val in first_col_values if val not in image_names]
+    print(undo)
+
+
 if __name__ == '__main__':
-    show_manual_output('142')
+    show_manual_output('040')
+    # for i in range(1, 30):
+    #     print(f'{i:03d}')
+    #     show_undo(f'{i:03d}')
